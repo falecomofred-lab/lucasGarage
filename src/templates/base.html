@@ -245,23 +245,21 @@
 </head>
 <body class="min-h-screen font-sans flex flex-col">
     <!-- NAVBAR -->
-    <nav class="sticky top-0 z-50 glass-card px-6 py-4 flex justify-between items-center border-b border-white/10">
-        <div class="flex items-center space-x-4">
-            <!-- Logo Lucas Garage -->
-            <a href="/" class="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <div class="w-10 h-10 bg-garage-ferrari rounded-full flex items-center justify-center shadow-lg shadow-garage-ferrari/20">
-                    <span class="font-display font-bold text-white text-xl">L</span>
-                </div>
-                <h1 class="font-display text-lg font-bold tracking-widest">
-                    LUCAS <span class="text-garage-ferrari">GARAGE</span>
-                </h1>
-            </a>
-        </div>
+    <nav class="sticky top-0 z-50 glass-card px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-3 border-b border-white/10">
+        <!-- Logo Lucas Garage -->
+        <a href="/" class="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity min-w-0">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 bg-garage-ferrari rounded-full flex items-center justify-center shadow-lg shadow-garage-ferrari/20 shrink-0">
+                <span class="font-display font-bold text-white text-lg sm:text-xl">L</span>
+            </div>
+            <h1 class="font-display text-sm sm:text-lg font-bold tracking-wide sm:tracking-widest truncate">
+                LUCAS <span class="text-garage-ferrari">GARAGE</span>
+            </h1>
+        </a>
 
-        <!-- Menu Central -->
-        <div class="flex space-x-8 text-sm font-medium tracking-wide text-gray-400">
-            <a href="/" class="nav-link">COLEÇÃO</a>
-            <a href="/" class="nav-link">SUPER TRUNFO</a>
+        <!-- Menu -->
+        <div class="flex items-center gap-4 sm:gap-8 text-xs sm:text-sm font-medium tracking-wide text-gray-400 shrink-0">
+            <a href="/" class="nav-link whitespace-nowrap">COLEÇÃO</a>
+            <a href="/" class="nav-link whitespace-nowrap">SUPER TRUNFO</a>
         </div>
     </nav>
 
