@@ -1,0 +1,204 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                  ENVIAR LUCAS GARAGE PARA GITHUB                            ║
+║                          Guia Rápido em PT-BR                               ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+⏱️  TEMPO TOTAL: ~5 minutos
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1️⃣  CRIAR REPOSITÓRIO NO GITHUB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Vá para: https://github.com/new
+
+2. Preencha:
+   Nome do repo: lucas-garage
+   Descrição: Catálogo premium de miniaturas 1:32 com FastAPI
+   Visibilidade: Public (todos veem) ou Private (só você)
+   ✅ NÃO marque "Add README"
+
+3. Clique: "Create repository"
+
+📍 Resultado: Você terá um repositório vazio
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2️⃣  CONFIGURAR GIT LOCALMENTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Abra PowerShell COMO ADMINISTRADOR
+
+Copie e cole (primeira vez só):
+
+git config --global user.name "Seu Nome Aqui"
+git config --global user.email "seu.email@gmail.com"
+
+Depois navigate até a pasta:
+
+cd "G:\Meu Drive\projetos\lucas_garage"
+
+Verificar se está OK:
+
+git status
+
+Esperado:
+  fatal: not a git repository ✅ (ainda não inicializou)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3️⃣  INICIALIZAR REPOSITÓRIO LOCAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+No PowerShell, copie e execute UM POR UM:
+
+git init
+
+git add .
+
+git commit -m "🎉 Initial commit: Lucas Garage v1.0"
+
+Esperado:
+  [main (root-commit) XXX] 🎉 Initial commit
+   XX files changed, YYYY insertions(+)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4️⃣  CONECTAR COM GITHUB (URL)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Acesse seu repositório no GitHub (https://github.com/SEU-USUARIO/lucas-garage)
+
+Procure o botão verde "Code" → copie a URL HTTPS
+
+Exemplo:
+  https://github.com/seu-usuario/lucas-garage.git
+
+No PowerShell, execute (troque SUA-URL pela URL acima):
+
+git remote add origin SUA-URL
+
+git branch -M main
+
+git push -u origin main
+
+⚠️  SERÁ PEDIDO SEU LOGIN DO GITHUB:
+   - Use: seu nome de usuário do GitHub
+   - Senha: Use um TOKEN (veja abaixo)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔐  GERAR TOKEN DO GITHUB (Se pedir senha)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Vá para: https://github.com/settings/tokens
+
+2. Clique: "Generate new token"
+
+3. Nome: lucas-garage-push
+
+4. Marque:
+   ✅ repo (acesso ao repositório)
+   ✅ workflow (para CI/CD futuro)
+   ✅ user (informações pessoais)
+
+5. Clique: "Generate token"
+
+6. COPIE O TOKEN (aparece uma única vez!)
+
+7. No PowerShell, quando pedir senha, cole o TOKEN
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ VERIFICAR SE FUNCIONOU
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Abra seu repositório no GitHub:
+   https://github.com/seu-usuario/lucas-garage
+
+2. Deve aparecer:
+   ✅ Pasta "src"
+   ✅ Arquivo "README.md"
+   ✅ Arquivo ".gitignore"
+   ✅ Arquivo "LICENSE"
+   ✅ Arquivo "requirements.txt"
+   ✅ Pasta ".git" (oculta, não visível)
+
+3. Procure a aba "Code" → deve mostrar os arquivos
+
+✅ SUCESSO! Seu código está no GitHub!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📝 PRÓXIMOS COMMITS (Salvar mudanças)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sempre que fizer mudanças no código:
+
+1. Abra PowerShell na pasta:
+   cd "G:\Meu Drive\projetos\lucas_garage"
+
+2. Ver o que mudou:
+   git status
+
+3. Adicionar arquivos:
+   git add .
+
+4. Fazer commit (mensagem com EMOJI):
+   git commit -m "✨ Add new feature"
+   git commit -m "🐛 Fix car save bug"
+   git commit -m "📚 Update documentation"
+   git commit -m "🚀 Deploy to production"
+
+5. Enviar para GitHub:
+   git push
+
+DONE! Mudanças estão no GitHub
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🆘 ERROS COMUNS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ ERRO: "fatal: not a git repository"
+✅ SOLUÇÃO: Execute "git init" na pasta do projeto
+
+❌ ERRO: "Authentication failed"
+✅ SOLUÇÃO:
+   - Use TOKEN ao invés de senha
+   - Gere token em: https://github.com/settings/tokens
+
+❌ ERRO: "fatal: remote origin already exists"
+✅ SOLUÇÃO:
+   git remote remove origin
+   git remote add origin NOVA-URL
+
+❌ ERRO: "refusing to merge unrelated histories"
+✅ SOLUÇÃO:
+   git pull origin main --allow-unrelated-histories
+   git push
+
+❌ ERRO: "Permission denied" ou "You don't have permission"
+✅ SOLUÇÃO:
+   - Repositório é privado? Invite-se a si mesmo
+   - Ou mude para público: Settings → Privacy
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 LEITURA ADICIONAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ GITHUB_SETUP.md (mais detalhado)
+✅ README.md (para outros entenderem o projeto)
+✅ .gitignore (arquivos que NÃO vão pro GitHub)
+✅ requirements.txt (dependências Python)
+✅ LICENSE (licença do projeto)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎉 PARABÉNS!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Seu projeto Lucas Garage está no GitHub! 🚀
+
+✅ Código versionado
+✅ Histórico de mudanças
+✅ Backup automático
+✅ Outros podem colaborar
+✅ Portfolio para mostrar no currículo!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dúvidas? Veja GITHUB_SETUP.md para guia mais detalhado
+
+Good luck! 🏎️💨

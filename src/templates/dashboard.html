@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full px-4 py-4 sm:px-6 lg:px-8">
+    <!-- HEADER PREMIUM COM EFEITOS DE GAME -->
+    <header class="mb-6 max-w-7xl mx-auto">
+        <div class="flex justify-between items-start gap-4 mb-8">
+            <div>
+                <p class="text-garage-ferrari text-xs font-bold tracking-[0.25em] uppercase mb-2">⚡ Coleção Premium 1:32</p>
+                <h1 class="text-3xl md:text-4xl font-display font-bold leading-tight">
+                    LUCAS<br>
+                    <span class="text-garage-ferrari">GARAGE</span>
+                </h1>
+            </div>
+            <a href="/edit/{{ (cars | length) + 1 }}"
+               class="group relative bg-gradient-to-br from-garage-ferrari to-red-600 hover:from-red-600 hover:to-red-700 active:scale-95 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-garage-ferrari/30 h-fit whitespace-nowrap text-sm overflow-hidden">
+                <span class="relative z-10 flex items-center gap-2">🏎️ Novo Carro</span>
+                <div class="absolute inset-0 bg-white/20 transform translate-x-full group-hover:translate-x-0 transition-transform duration-300"></div>
+            </a>
+        </div>
+
+        <!-- STATS PREMIUM -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+            <div class="glass-card p-3 rounded-2xl border border-white/5">
+                <p class="text-2xl font-display font-bold text-white">{{ total }}</p>
+                <p class="text-[11px] text-gray-500 uppercase tracking-wider mt-1">Miniaturas</p>
+            </div>
+            <div class="glass-card p-3 rounded-2xl border border-white/5">
+                <p class="text-xl font-display font-bold text-garage-ferrari">{{ published }}</p>
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Publicadas</p>
+            </div>
+            <div class="glass-card p-3 rounded-2xl border border-white/5">
+                <p class="text-xl font-display font-bold text-gray-400">{{ drafts }}</p>
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Rascunhos</p>
+            </div>
+            <div class="rounded-2xl p-3 border border-garage-ferrari/40 bg-gradient-to-br from-garage-ferrari/20 to-transparent">
+                <p class="text-xl font-display font-bold text-garage-ferrari">{{ total_score }}</p>
+                <p class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Score</p>
+            </div>
+        </div>
+
+        <!-- NÍVEL DO COLECIONADOR -->
+        <div class="mt-3 p-3 rounded-2xl bg-gradient-to-r from-garage-ferrari/10 to-purple-500/10 border border-garage-ferrari/20">
+            <p class="text-xs text-gray-400">Status do Colecionador</p>
+            <p class="text-sm font-display font-bold text-white mt-1">{{ level }}</p>
+        </div>
+    </header>
+
+    <!-- GRID DE CARDS - MOBILE FIRST -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-7xl mx-auto">
+        {% for car in cars %}
+        {% set mfr = mfr_map.get(car.manufacturer_id) %}
+
+        <!-- CARD: TOCAR EM QUALQUER LUGAR ABRE A EDIÇÃO -->
+        <div onclick="location.href='/edit/{{ car.id }}'"
+             class="car-card group relative flex flex-col rounded-3xl overflow-hidden bg-garage-dark border border-white/5 cursor-pointer shadow-lg shadow-black/40">
+
+            <!-- ZONA DA IMAGEM (enquadramento uniforme 4:3) -->
+            <div class="photo-frame relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite via-garage-dark to-black overflow-hidden">
+                {% if car.image_urls and car.image_urls[0] %}
+                    <img src="{{ car.image_urls[0] }}" alt="{{ car.name }}" loading="lazy"
+                         class="card-photo absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105">
+                {% else %}
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                        <p class="font-display text-5xl font-bold text-white/20">1:32</p>
+                        <p class="text-xs text-gray-600 mt-3">Sem foto ainda</p>
+                    </div>
+                {% endif %}
+
+                <!-- BADGES SOBRE A IMAGEM -->
+                <div class="absolute top-3 left-3 right-3 flex justify-between items-start z-10 pointer-events-none">
+                    <span class="bg-garage-ferrari/90 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-lg shadow-garage-ferrari/30">
+                        {{ car.class_.value if car.class_.value is defined else car.class_ }}
+                    </span>
+                    {% set status_val = car.status.value if car.status.value is defined else car.status %}
+                    <span class="text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider backdrop-blur-sm
+                        {% if status_val == 'published' %}bg-green-500/20 text-green-400 border border-green-500/30{% else %}bg-yellow-500/20 text-yellow-300 border border-yellow-500/30{% endif %}">
+                        {% if status_val == 'published' %}✓ Publicado{% else %}✎ Rascunho{% endif %}
+                    </span>
+                </div>
+
+                <!-- BOTÃO VER (card público) -->
+                <a href="/car/{{ car.id }}" onclick="event.stopPropagation()" title="Ver card"
+                   class="absolute bottom-3 right-3 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-garage-ferrari transition-colors text-sm">
+                    👁
+                </a>
+            </div>
+
+            <!-- PAINEL DE INFORMAÇÕES -->
+            <div class="flex flex-col gap-3 p-4">
+                <div>
+                    <h3 class="font-display text-base font-bold text-white line-clamp-1">{{ car.name }}</h3>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider line-clamp-1 mt-1">
+                        {{ mfr.name if mfr else '—' }} · {{ car.year or '—' }} · {{ car.color or 'sem cor' }}
+                    </p>
+                </div>
+
+                <!-- SCORE + RARIDADE -->
+                {% set rar = rarity_map.get(car.id, 'C') %}
+                <div class="flex items-center justify-between">
+                    <span class="text-garage-ferrari font-display font-bold text-sm">⚡ {{ score_map.get(car.id, 0) }} pts</span>
+                    <span class="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border
+                        {% if rar == 'S' %}text-yellow-300 border-yellow-400/40 bg-yellow-400/10
+                        {% elif rar == 'A' %}text-garage-ferrari border-garage-ferrari/40 bg-garage-ferrari/10
+                        {% elif rar == 'B' %}text-blue-300 border-blue-400/40 bg-blue-400/10
+                        {% else %}text-gray-300 border-white/20 bg-white/5{% endif %}">
+                        Classe {{ rar }}
+                    </span>
+                </div>
+
+                <a href="/edit/{{ car.id }}" onclick="event.stopPropagation()"
+                   class="bg-garage-ferrari hover:bg-red-700 text-white text-sm px-3 py-2.5 rounded-xl transition-all font-bold text-center shadow-lg shadow-garage-ferrari/20">
+                    ✏️ Editar informações
+                </a>
+            </div>
+
+            <!-- BARRA ANIMADA INFERIOR -->
+            <div class="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-garage-ferrari to-red-500 group-hover:w-full transition-all duration-500 z-30"></div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- EMPTY STATE -->
+    {% if not cars %}
+    <div class="text-center py-20 px-4">
+        <p class="text-5xl mb-4">🏎️</p>
+        <h2 class="text-2xl font-display font-bold mb-2">Coleção Vazia</h2>
+        <p class="text-gray-500 mb-6">Comece adicionando sua primeira miniatura!</p>
+        <a href="/edit/1" class="inline-block bg-garage-ferrari hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold transition-all">
+            + Adicionar Primeiro Carro
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+@media (pointer: fine) {
+    a[href*="/car/"],
+    a[href*="/edit/"] {
+        touch-action: manipulation;
+    }
+}
+</style>
+{% endblock %}

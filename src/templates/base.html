@@ -1,0 +1,323 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Lucas Garage{% endblock %}</title>
+
+    <style> html { background:#0a0a0a; } </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        garage: {
+                            black: '#0a0a0a',
+                            dark: '#171717',
+                            ferrari: '#ff2800',
+                            graphite: '#262626',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Orbitron', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: #0a0a0a;
+            color: #ffffff;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(255, 40, 0, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(255, 40, 0, 0.03) 0%, transparent 70%);
+            overflow-x: hidden;
+        }
+
+        /* Scrollbar premium com efeito neon */
+        ::-webkit-scrollbar { width: 12px; height: 12px; }
+        ::-webkit-scrollbar-track { background: linear-gradient(to bottom, #0a0a0a, #171717); }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, #262626, #1a1a1a);
+            border-radius: 6px;
+            border: 2px solid #0a0a0a;
+            transition: all 0.3s ease;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(to bottom, #ff2800, #cc2200);
+            box-shadow: 0 0 10px rgba(255, 40, 0, 0.5);
+        }
+
+        /* Seleção de texto com glow */
+        ::selection {
+            background: rgba(255, 40, 0, 0.6);
+            color: #fff;
+            text-shadow: 0 0 8px rgba(255, 40, 0, 0.4);
+        }
+
+        /* Glass card premium */
+        .glass-card {
+            background: rgba(23, 23, 23, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            background: rgba(23, 23, 23, 0.85);
+            border-color: rgba(255, 40, 0, 0.2);
+            box-shadow: 0 8px 24px rgba(255, 40, 0, 0.08);
+        }
+
+        /* Efeito glow Ferrari */
+        .ferrari-glow:hover {
+            box-shadow: 0 0 40px rgba(255, 40, 0, 0.4), inset 0 0 20px rgba(255, 40, 0, 0.1);
+        }
+
+        /* Links de navegação */
+        .nav-link {
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        .nav-link:hover {
+            color: #ff2800;
+            text-shadow: 0 0 12px rgba(255, 40, 0, 0.6);
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(to right, #ff2800, transparent);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 8px rgba(255, 40, 0, 0.5);
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* Animações dinâmicas */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes glow-pulse {
+            0%, 100% { text-shadow: 0 0 10px rgba(255, 40, 0, 0.3); }
+            50% { text-shadow: 0 0 20px rgba(255, 40, 0, 0.6); }
+        }
+        @keyframes slide-in-left {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        main { animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Inputs e Forms premium */
+        input, select, textarea {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(0, 0, 0, 0.4);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+        }
+        input:hover, select:hover, textarea:hover {
+            border-color: rgba(255, 40, 0, 0.3);
+            background: rgba(0, 0, 0, 0.5);
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #ff2800;
+            background: rgba(0, 0, 0, 0.6);
+            box-shadow: 0 0 0 3px rgba(255, 40, 0, 0.2), inset 0 0 8px rgba(255, 40, 0, 0.1);
+            outline: none;
+        }
+
+        /* Botões premium */
+        button, a[class*="bg-garage"], a[class*="bg-white"] {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        button::before, a[class*="bg-garage"]::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        button:hover::before, a[class*="bg-garage"]:hover::before {
+            opacity: 1;
+        }
+        button:active, a[class*="bg-garage"]:active {
+            transform: scale(0.98);
+        }
+
+        /* ══════ TRATAMENTO PROFISSIONAL DAS FOTOS (visual colecionador) ══════ */
+        .card-photo {
+            filter: contrast(1.07) saturate(1.12) brightness(1.02);
+        }
+        .car-card:hover .card-photo {
+            filter: contrast(1.12) saturate(1.2) brightness(1.05);
+        }
+        /* Vinheta sutil em volta da foto, dá profundidade e uniformiza */
+        .photo-frame::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 55px rgba(0,0,0,.45), inset 0 -30px 40px rgba(0,0,0,.35);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Pseudo-elementos 3D e game effects */
+        .game-card {
+            perspective: 1000px;
+        }
+        .game-card:hover {
+            transform: translateY(-4px);
+        }
+
+        /* ══════ EFEITO IRADO DOS CARDS ══════ */
+        .car-card {
+            transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease, border-color .35s ease;
+            will-change: transform;
+        }
+        /* Passar o mouse / focar: levanta e brilha vermelho Ferrari */
+        .car-card:hover {
+            transform: translateY(-8px) scale(1.03);
+            border-color: rgba(255,40,0,.6) !important;
+            box-shadow: 0 18px 40px rgba(0,0,0,.55), 0 0 30px rgba(255,40,0,.35);
+        }
+        /* Reflexo diagonal que atravessa o card ao passar o mouse */
+        .car-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -75%;
+            width: 50%; height: 100%;
+            background: linear-gradient(120deg, transparent, rgba(255,255,255,.18), transparent);
+            transform: skewX(-20deg);
+            transition: left .7s ease;
+            pointer-events: none;
+            z-index: 30;
+        }
+        .car-card:hover::after { left: 130%; }
+        /* Ao TOCAR / SELECIONAR: comprime e acende um anel neon vermelho */
+        .car-card:active {
+            transform: scale(.96);
+            border-color: #ff2800 !important;
+            box-shadow: 0 0 0 3px rgba(255,40,0,.5), 0 0 40px rgba(255,40,0,.6), inset 0 0 30px rgba(255,40,0,.15);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .car-card, .car-card::after { transition: none; }
+        }
+
+
+        /* Animações de card */
+        @keyframes card-float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .animate-float {
+            animation: card-float 3s ease-in-out infinite;
+        }
+
+        /* Efeito de raridade com cores */
+        .rarity-s { border-color: rgba(255, 215, 0, 0.3) !important; }
+        .rarity-a { border-color: rgba(255, 40, 0, 0.3) !important; }
+        .rarity-b { border-color: rgba(100, 150, 255, 0.3) !important; }
+        .rarity-c { border-color: rgba(150, 150, 150, 0.3) !important; }
+    </style>
+</head>
+<body class="min-h-screen font-sans flex flex-col">
+    <!-- NAVBAR -->
+    <nav class="sticky top-0 z-50 glass-card px-6 py-4 flex justify-between items-center border-b border-white/10">
+        <div class="flex items-center space-x-4">
+            <!-- Logo Lucas Garage -->
+            <a href="/" class="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+                <div class="w-10 h-10 bg-garage-ferrari rounded-full flex items-center justify-center shadow-lg shadow-garage-ferrari/20">
+                    <span class="font-display font-bold text-white text-xl">L</span>
+                </div>
+                <h1 class="font-display text-lg font-bold tracking-widest">
+                    LUCAS <span class="text-garage-ferrari">GARAGE</span>
+                </h1>
+            </a>
+        </div>
+
+        <!-- Menu Central -->
+        <div class="flex space-x-8 text-sm font-medium tracking-wide text-gray-400">
+            <a href="/" class="nav-link">COLEÇÃO</a>
+            <a href="/" class="nav-link">SUPER TRUNFO</a>
+        </div>
+    </nav>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="flex-1 w-full">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/5 py-6 px-6 bg-garage-dark/30">
+        <div class="container mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <!-- Info Lucas Garage -->
+                <div>
+                    <h3 class="font-display font-bold text-garage-ferrari mb-3">LUCAS GARAGE</h3>
+                    <p class="text-xs text-gray-500 leading-relaxed">
+                        Catálogo digital premium para miniaturas 1:32 de alta precisão.
+                        Eternizando cada detalhe da sua coleção.
+                    </p>
+                </div>
+
+                <!-- Links Rápidos -->
+                <div>
+                    <h3 class="font-display font-bold text-gray-300 mb-3">NAVEGAÇÃO</h3>
+                    <ul class="space-y-2 text-xs text-gray-500">
+                        <li><a href="/" class="hover:text-garage-ferrari transition-colors">Coleção</a></li>
+                        <li><a href="/" class="hover:text-garage-ferrari transition-colors">Dashboard</a></li>
+                        <li><a href="/" class="hover:text-garage-ferrari transition-colors">Sobre</a></li>
+                    </ul>
+                </div>
+
+                <!-- Branding Venure -->
+                <div class="md:text-right">
+                    <p class="text-xs text-gray-500 mb-2">Desenvolvido por</p>
+                    <a href="https://venure.com.br" target="_blank" class="inline-block hover:opacity-80 transition-opacity">
+                        <p class="font-display font-bold text-garage-ferrari text-sm">
+                            VENURE
+                        </p>
+                        <p class="text-xs text-gray-600">Tecnologia que diverte</p>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Copyright -->
+            <div class="border-t border-white/5 pt-6 text-center">
+                <p class="text-xs text-gray-600">
+                    &copy; 2026 LUCAS GARAGE - Eternizando Miniaturas
+                </p>
+                <p class="text-xs text-gray-700 mt-2">
+                    Solução desenvolvida por
+                    <a href="https://venure.com.br" target="_blank" class="text-garage-ferrari hover:underline">
+                        Venure - Tecnologia que diverte
+                    </a>
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

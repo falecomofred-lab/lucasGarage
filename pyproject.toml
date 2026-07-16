@@ -1,0 +1,24 @@
+[project]
+name = "lucas-garage"
+version = "0.1.0"
+description = "Cat?logo digital premium para miniaturas 1:32"
+authors = [{name = "Lucas", email = "lucas@example.com"}]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "sqlalchemy>=2.0.35",
+    "alembic>=1.14.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "jinja2>=3.1.4",
+    "python-multipart>=0.0.19",
+    "pillow>=11.0.0",
+    "opencv-python>=4.10.0",
+    "aiofiles>=24.1.0",
+    "python-dotenv>=1.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

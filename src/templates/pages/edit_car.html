@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}{% if has_car %}Editar {{ car.name }}{% else %}Novo Carro{% endif %} · Lucas Garage{% endblock %}
+
+{% block content %}
+<div class="w-full px-4 py-8 sm:px-6">
+    <div class="max-w-3xl mx-auto">
+
+        {% if saved %}
+        <div id="toast-saved" class="fixed top-20 left-1/2 -translate-x-1/2 z-[200] bg-green-600 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-green-600/30 flex items-center gap-2">
+            ✅ Alterações salvas!
+        </div>
+        {% endif %}
+
+        <!-- ═══════════ HEADER ═══════════ -->
+        <div class="mb-8">
+            <a href="/" class="text-garage-ferrari hover:text-red-600 transition-colors mb-4 inline-flex items-center gap-2 text-sm">
+                <span>←</span><span>Voltar à Coleção</span>
+            </a>
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-4xl font-display font-bold mb-2">
+                        {% if has_car %}Editando: <span class="text-garage-ferrari">{{ car.name }}</span>{% else %}Novo <span class="text-garage-ferrari">Carro</span>{% endif %}
+                    </h1>
+                    <p class="text-gray-500">Complete a ficha técnica da miniatura</p>
+                </div>
+                {% if current_index and total_cars %}
+                <div class="text-right glass-card rounded-xl px-5 py-3">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest">Progresso</p>
+                    <p class="text-2xl font-display font-bold"><span class="text-garage-ferrari">{{ current_index }}</span><span class="text-gray-600">/{{ total_cars }}</span></p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ═══════════ FOTOS DA MINIATURA ═══════════ -->
+        <div class="mb-6 p-6 bg-garage-dark rounded-2xl border border-white/10">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="font-display font-bold text-lg">📷 Fotos da Miniatura</h3>
+                    <p class="text-xs text-gray-500 mt-1">Adicione até 3 fotos: principal, frente e traseira</p>
+                </div>
+            </div>
+
+            {% if has_car %}
+            <form method="POST" action="/edit/{{ car.id }}/photos" enctype="multipart/form-data" id="photos-form">
+                <div class="grid grid-cols-3 gap-3">
+                    {% set photos = car.image_urls if car.image_urls else [] %}
+                    {% set slots = [
+                        ('photo_main', '⭐ Principal', photos[0] if photos|length > 0 else ''),
+                        ('photo_front', '🔜 Frente', photos[1] if photos|length > 1 else ''),
+                        ('photo_rear', '🔙 Traseira', photos[2] if photos|length > 2 else '')
+                    ] %}
+                    {% for field, label, url in slots %}
+                    <div>
+                        <label class="block text-xs font-bold mb-2 text-center">{{ label }}</label>
+                        <label class="cursor-pointer group block">
+                            <input type="file" name="{{ field }}" accept="image/*" class="hidden" onchange="previewPhoto(this, 'prev-{{ field }}')">
+                            <div class="relative aspect-square rounded-2xl border-2 border-dashed border-white/20 group-hover:border-garage-ferrari/60 overflow-hidden bg-black/40 flex items-center justify-center transition-all">
+                                <img id="prev-{{ field }}" src="{{ url }}"
+                                     class="absolute inset-0 w-full h-full object-cover {% if not url %}hidden{% endif %}"
+                                     onerror="this.classList.add('hidden')">
+                                <div class="text-center text-gray-500 group-hover:text-garage-ferrari transition-colors relative z-10 {% if url %}opacity-0 group-hover:opacity-100{% endif %}"
+                                     {% if url %}style="background:rgba(0,0,0,.55);position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;"{% endif %}>
+                                    <p class="text-3xl">+</p>
+                                    <p class="text-[10px] uppercase tracking-wider mt-1">{% if url %}Trocar{% else %}Adicionar{% endif %}</p>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="w-full mt-4 bg-white/10 hover:bg-garage-ferrari text-white text-sm font-bold px-4 py-3 rounded-xl transition-all">
+                    💾 Salvar Fotos
+                </button>
+            </form>
+            {% else %}
+            <div class="text-center py-6 px-4 rounded-2xl border border-dashed border-white/15 bg-black/30">
+                <p class="text-3xl mb-2">📸</p>
+                <p class="text-sm text-yellow-500/90">Salve os dados do carro primeiro</p>
+                <p class="text-xs text-gray-500 mt-1">Depois de criar o carro, esta área libera o envio das fotos</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if has_car %}
+        <!-- ═══════════ QR CODE + COMPARTILHAR ═══════════ -->
+        <div class="mb-6 p-6 bg-garage-dark rounded-2xl border border-white/10">
+            <h3 class="font-display font-bold text-lg mb-1">🔗 QR Code & Compartilhar</h3>
+            <p class="text-xs text-gray-500 mb-4">Imprima o QR e cole na base da miniatura. Ao escanear, abre o card digital.</p>
+            <div class="flex items-center gap-5 flex-wrap">
+                <img src="{{ qrcode }}" alt="QR Code" class="w-28 h-28 rounded-xl border-2 border-white/10 p-1 bg-white shrink-0">
+                <div class="flex flex-col gap-2 flex-1 min-w-[180px]">
+                    <a href="{{ qrcode }}" target="_blank"
+                       class="bg-white/10 hover:bg-garage-ferrari text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all text-center">
+                        ⬇ Baixar QR Code
+                    </a>
+                    <button type="button" onclick="shareCard()"
+                       class="bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all text-center">
+                        📸 <span id="share-btn-label">Compartilhar card</span>
+                    </button>
+                    <a href="/car/{{ car.id }}"
+                       class="bg-white/10 hover:bg-white/20 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all text-center">
+                        👁 Ver card digital
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ═══════════ FICHA TÉCNICA (FORMULÁRIO PRINCIPAL) ═══════════ -->
+        <form method="POST" id="car-form" class="space-y-6 p-6 bg-garage-dark rounded-2xl border border-white/10">
+            <h3 class="font-display font-bold text-lg border-b border-white/10 pb-4">📋 Ficha Técnica Completa</h3>
+
+            <!-- Nome -->
+            <div>
+                <label class="block text-sm font-bold mb-2">🚙 Nome do Carro *</label>
+                <input type="text" name="name" id="f-name" value="{% if has_car %}{{ car.name or '' }}{% endif %}"
+                    placeholder="Ex: Ferrari F40, Lamborghini Countach" autofocus onfocus="this.select()"
+                    class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white placeholder-gray-600 focus:border-garage-ferrari outline-none transition-all" required>
+            </div>
+
+            <!-- Montadora + Categoria -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold mb-2">🏢 Montadora *</label>
+                    <select name="manufacturer_id" id="manufacturer_id"
+                        class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white focus:border-garage-ferrari outline-none transition-all" required>
+                        <option value="">Selecione a marca...</option>
+                        {% for mfr in manufacturers | sort(attribute='name') %}
+                        <option value="{{ mfr.id }}" {% if has_car and car.manufacturer_id == mfr.id %}selected{% endif %}>{{ mfr.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">🏷️ Categoria *</label>
+                    <select name="category_id" class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white focus:border-garage-ferrari outline-none transition-all" required>
+                        <option value="">Selecione...</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if has_car and car.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Ano + Cor + Escala -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-bold mb-2">📅 Ano *</label>
+                    <input type="number" name="year" id="f-year" value="{% if has_car %}{{ car.year or '' }}{% endif %}"
+                        placeholder="1987" min="1900" max="2099"
+                        class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white placeholder-gray-600 focus:border-garage-ferrari outline-none transition-all" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">🎨 Cor *</label>
+                    <input type="text" name="color" id="f-color" value="{% if has_car %}{{ car.color or '' }}{% endif %}"
+                        placeholder="Vermelho"
+                        class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white placeholder-gray-600 focus:border-garage-ferrari outline-none transition-all" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">📏 Escala</label>
+                    <input type="text" name="scale" value="{% if has_car %}{{ car.scale or '1:32' }}{% else %}1:32{% endif %}"
+                        class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white focus:border-garage-ferrari outline-none transition-all">
+                </div>
+            </div>
+
+            <!-- Classe (cards clicáveis) -->
+            <div>
+                <label class="block text-sm font-bold mb-3">🏁 Classe *</label>
+                <div class="grid grid-cols-3 md:grid-cols-6 gap-2" id="class-cards">
+                    {% set classes = [
+                        ('sports', '⚡', 'Sports'), ('classic', '🚗', 'Classic'), ('supercar', '💎', 'Supercar'),
+                        ('muscle', '💪', 'Muscle'), ('racing', '🏎️', 'Racing'), ('luxury', '👑', 'Luxury')
+                    ] %}
+                    {% for value, emoji, label in classes %}
+                    <label class="cursor-pointer">
+                        <input type="radio" name="class_" value="{{ value }}" class="hidden peer"
+                            {% if has_car and (car.class_.value if car.class_.value is defined else car.class_) == value %}checked{% endif %} required>
+                        <div class="text-center p-3 rounded-xl border border-white/15 bg-black/40 peer-checked:border-garage-ferrari peer-checked:bg-garage-ferrari/15 peer-checked:shadow-lg peer-checked:shadow-garage-ferrari/20 hover:border-white/40 transition-all">
+                            <p class="text-xl mb-1">{{ emoji }}</p>
+                            <p class="text-[10px] font-bold uppercase tracking-wider">{{ label }}</p>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Descrição -->
+            <div>
+                <label class="block text-sm font-bold mb-2">📝 Descrição</label>
+                <textarea name="description" id="f-description" rows="3"
+                    placeholder="Ex: Último modelo aprovado pessoalmente por Enzo Ferrari. Motor V8 biturbo de 478cv..."
+                    class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white placeholder-gray-600 focus:border-garage-ferrari outline-none transition-all resize-none">{% if has_car %}{{ car.description or '' }}{% endif %}</textarea>
+            </div>
+
+            <!-- Curiosidade -->
+            <div>
+                <label class="block text-sm font-bold mb-2">⭐ Curiosidade</label>
+                <textarea name="trivia" id="f-trivia" rows="2"
+                    placeholder="Ex: Foi o primeiro carro de produção a ultrapassar 320 km/h..."
+                    class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white placeholder-gray-600 focus:border-garage-ferrari outline-none transition-all resize-none">{% if has_car %}{{ car.trivia or '' }}{% endif %}</textarea>
+            </div>
+
+            <!-- Status -->
+            <div>
+                <label class="block text-sm font-bold mb-2">📊 Status</label>
+                <div class="grid grid-cols-2 gap-3">
+                    {% set status_val = (car.status.value if has_car and car.status.value is defined else (car.status if has_car else 'draft')) %}
+                    <label class="cursor-pointer">
+                        <input type="radio" name="status" value="draft" class="hidden peer" {% if status_val == 'draft' or not has_car %}checked{% endif %}>
+                        <div class="text-center p-3 rounded-xl border border-white/15 bg-black/40 peer-checked:border-yellow-500 peer-checked:bg-yellow-500/10 transition-all">
+                            <p class="font-bold text-sm">📝 Rascunho</p>
+                            <p class="text-[10px] text-gray-500 mt-1">Ainda editando</p>
+                        </div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="status" value="published" class="hidden peer" {% if status_val == 'published' %}checked{% endif %}>
+                        <div class="text-center p-3 rounded-xl border border-white/15 bg-black/40 peer-checked:border-green-500 peer-checked:bg-green-500/10 transition-all">
+                            <p class="font-bold text-sm">✅ Publicado</p>
+                            <p class="text-[10px] text-gray-500 mt-1">Pronto para coleção</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Botões -->
+            <div class="flex gap-4 pt-6 border-t border-white/10">
+                <button type="submit" id="save-btn"
+                    class="flex-1 bg-garage-ferrari hover:bg-red-700 text-white font-bold py-4 rounded-lg transition-all shadow-lg shadow-garage-ferrari/20 hover:shadow-garage-ferrari/40">
+                    💾 {% if has_car %}Salvar Alterações{% else %}Criar Carro{% endif %}
+                </button>
+                <a href="/" class="px-8 bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-lg transition-colors text-center">Cancelar</a>
+            </div>
+        </form>
+
+        <!-- ═══════════ NAVEGAÇÃO ═══════════ -->
+        {% if has_car and next_car_id %}
+        <div class="mt-8 flex justify-between items-center p-5 bg-gradient-to-r from-garage-graphite to-garage-dark rounded-xl border border-garage-ferrari/20">
+            <p class="text-sm text-gray-500">Continue preenchendo a coleção</p>
+            <a href="/edit/{{ next_car_id }}"
+                class="bg-garage-ferrari hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold transition-all shadow-lg shadow-garage-ferrari/20">
+                Próximo Carro →
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// ══════ Esconde o aviso de "salvo" após 2,5s ══════
+(function(){
+    const t = document.getElementById('toast-saved');
+    if (t) setTimeout(() => { t.style.transition='opacity .4s'; t.style.opacity='0'; }, 2500);
+})();
+
+// ══════ Compartilhar card-imagem ══════
+{% if has_car %}
+async function shareCard() {
+    const label = document.getElementById('share-btn-label');
+    const original = label ? label.textContent : '';
+    if (label) label.textContent = 'Gerando...';
+    try {
+        const resp = await fetch('/car/{{ car.id }}/card.png');
+        const blob = await resp.blob();
+        const file = new File([blob], 'lucas-garage-{{ car.id }}.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: '{{ car.name }}', text: 'Da minha coleção Lucas Garage! 🏎️' });
+        } else {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'lucas-garage-{{ car.id }}.png';
+            document.body.appendChild(a); a.click(); a.remove();
+            URL.revokeObjectURL(url);
+        }
+    } catch (e) {
+        window.open('/car/{{ car.id }}/card.png', '_blank');
+    } finally {
+        if (label) label.textContent = original;
+    }
+}
+{% endif %}
+
+// ══════ Preview instantâneo das fotos ══════
+function previewPhoto(input, imgId) {
+    if (input.files && input.files[0]) {
+        const img = document.getElementById(imgId);
+        img.src = URL.createObjectURL(input.files[0]);
+        img.classList.remove('hidden');
+    }
+}
+
+// ══════ Feedback ao salvar ══════
+document.getElementById('car-form').addEventListener('submit', function() {
+    const btn = document.getElementById('save-btn');
+    btn.innerHTML = '⏳ Salvando...';
+    btn.disabled = true;
+});
+</script>
+{% endblock %}

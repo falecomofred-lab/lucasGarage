@@ -1,0 +1,22 @@
+# Lucas Garage - Dependências (enxutas, prontas para PythonAnywhere)
+
+# Framework Web (ASGI)
+fastapi>=0.115.0
+uvicorn>=0.34.0
+
+# Banco de Dados
+sqlalchemy>=2.0.35
+
+# Validação / Configuração
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+python-dotenv>=1.0.0
+
+# Templates
+jinja2>=3.1.4
+
+# Upload de Arquivos (formulários)
+python-multipart>=0.0.19
+
+# Geração do card-imagem para compartilhar (WhatsApp)
+pillow>=10.0.0

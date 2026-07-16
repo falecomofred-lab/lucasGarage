@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}{{ car_name }} · Lucas Garage{% endblock %}
+
+{% block content %}
+<div class="w-full px-4 py-8 sm:px-6">
+    <div class="max-w-5xl mx-auto">
+        <a href="/" class="text-gray-500 hover:text-white flex items-center space-x-2 text-sm mb-8 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            <span>VOLTAR PARA COLEÇÃO</span>
+        </a>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <!-- ══════ VISUAL DO CARRO ══════ -->
+            <div class="space-y-6">
+                <div class="photo-frame rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-garage-ferrari/10 bg-gradient-to-br from-garage-graphite to-black aspect-video flex items-center justify-center">
+                    {% if images %}
+                        <img id="main-photo" src="{{ images[0] }}" alt="{{ car_name }}" class="card-photo w-full h-full object-cover">
+                    {% else %}
+                        <div class="text-center">
+                            <p class="font-display text-6xl font-bold text-white/20">1:32</p>
+                            <p class="text-xs text-gray-600 mt-4">Sem foto ainda</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if images | length > 1 %}
+                <div class="grid grid-cols-3 gap-4">
+                    {% for img in images %}
+                    <div class="rounded-xl overflow-hidden border border-white/5 opacity-60 hover:opacity-100 hover:border-garage-ferrari/50 transition-all cursor-pointer aspect-square"
+                         onclick="document.getElementById('main-photo').src='{{ img }}'">
+                        <img src="{{ img }}" class="w-full h-full object-cover" loading="lazy">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- ══════ INFO E AÇÕES ══════ -->
+            <div class="flex flex-col justify-between gap-8">
+                <div>
+                    <div class="flex items-center space-x-4 mb-6">
+                        <div>
+                            <h2 class="text-4xl font-display font-bold">{{ car_name }}</h2>
+                            <p class="text-gray-500 uppercase tracking-[0.2em] text-sm">{{ mfr_name }} • {{ car.year }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Stats de Batalha com efeito de Game -->
+                    <div class="grid grid-cols-2 gap-4 my-8">
+                        <div class="glass-card p-6 rounded-2xl border-garage-ferrari/40 bg-gradient-to-br from-garage-ferrari/10 to-transparent relative overflow-hidden group">
+                            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform translate-x-full group-hover:translate-x-0 transition-transform duration-500 pointer-events-none"></div>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1 font-bold">⚡ Collector Score</p>
+                            <p class="text-3xl font-display font-bold text-garage-ferrari relative z-10">{{ score }} <span class="text-sm text-gray-400">pts</span></p>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl border-white/20 bg-gradient-to-br from-white/5 to-transparent">
+                            <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1 font-bold">🎖️ Raridade</p>
+                            <p class="text-3xl font-display font-bold text-white">{{ rarity }}</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent">
+                            <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1 font-bold">🏁 Classe</p>
+                            <p class="text-xl font-display font-bold text-purple-400">{{ class_label }}</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-transparent">
+                            <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1 font-bold">🎨 Cor · Escala</p>
+                            <p class="text-xl font-display font-bold text-cyan-400">{{ car.color }} · {{ car.scale }}</p>
+                        </div>
+                    </div>
+
+                    {% if car.description %}
+                    <p class="text-gray-400 text-sm leading-relaxed mb-4">{{ car.description }}</p>
+                    {% endif %}
+                    {% if car.trivia %}
+                    <div class="p-4 bg-garage-ferrari/10 border border-garage-ferrari/20 rounded-xl text-sm text-gray-300">
+                        ⭐ <strong>Curiosidade:</strong> {{ car.trivia }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Ações -->
+                <div class="space-y-3">
+                    <!-- Compartilhar CARD (imagem) -->
+                    <button type="button" onclick="shareCard()"
+                       class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center space-x-3 shadow-lg shadow-green-600/20">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        <span id="share-btn-label">COMPARTILHAR CARD</span>
+                    </button>
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="https://wa.me/?text={{ share_text | urlencode }}" target="_blank"
+                           class="bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-2xl transition-colors flex items-center justify-center gap-2 text-sm">
+                            💬 Enviar link
+                        </a>
+                        <a href="/edit/{{ car.id }}"
+                           class="bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-2xl transition-colors flex items-center justify-center gap-2 text-sm">
+                            ✏️ Editar
+                        </a>
+                    </div>
+                </div>
+
+                <!-- QR CODE DA MINIATURA -->
+                <div class="glass-card p-5 rounded-3xl flex items-center justify-between border-garage-ferrari/20 gap-4">
+                    <div>
+                        <h4 class="font-display font-bold text-base mb-1">QR CODE DA MINIATURA</h4>
+                        <p class="text-xs text-gray-500 max-w-[220px]">Imprima e cole na base do carro. Ao escanear, abre este card digital.</p>
+                        <a href="{{ qrcode }}" target="_blank" class="text-garage-ferrari text-xs hover:underline mt-2 inline-block">⬇ Baixar QR Code</a>
+                    </div>
+                    <img src="{{ qrcode }}" alt="QR Code" class="w-24 h-24 rounded-xl border-2 border-white/10 p-1 bg-white shrink-0">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function shareCard() {
+    const label = document.getElementById('share-btn-label');
+    const original = label.textContent;
+    label.textContent = 'Gerando card...';
+    try {
+        const resp = await fetch('/car/{{ car.id }}/card.png');
+        const blob = await resp.blob();
+        const file = new File([blob], 'lucas-garage-{{ car.id }}.png', { type: 'image/png' });
+
+        // Celular: compartilha a imagem direto (WhatsApp, etc.)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: '{{ car_name }}',
+                text: 'Veja este carro da minha coleção Lucas Garage! 🏎️'
+            });
+        } else {
+            // Desktop: baixa a imagem
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'lucas-garage-{{ car.id }}.png';
+            document.body.appendChild(a); a.click(); a.remove();
+            URL.revokeObjectURL(url);
+        }
+    } catch (e) {
+        window.open('/car/{{ car.id }}/card.png', '_blank');
+    } finally {
+        label.textContent = original;
+    }
+}
+</script>
+{% endblock %}
