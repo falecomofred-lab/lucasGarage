@@ -19,8 +19,8 @@ No painel, abra **Consoles → Bash**.
 
 ### 2. Clonar o projeto
 ```bash
-git clone https://github.com/SEU-USUARIO/lucas-garage.git
-cd lucas-garage
+git clone https://github.com/falecomofred-lab/lucasGarage.git
+cd lucasGarage
 ```
 
 ### 3. Criar o ambiente virtual e instalar
@@ -40,7 +40,7 @@ Troque **SEU-USUARIO** nos dois lugares:
 ```bash
 pa website create \
   --domain SEU-USUARIO.pythonanywhere.com \
-  --command '/home/SEU-USUARIO/.virtualenvs/lucas/bin/uvicorn --app-dir /home/SEU-USUARIO/lucas-garage --uds ${DOMAIN_SOCKET} src.main:app'
+  --command '/home/SEU-USUARIO/.virtualenvs/lucas/bin/uvicorn --app-dir /home/SEU-USUARIO/lucasGarage --uds ${DOMAIN_SOCKET} src.main:app'
 ```
 
 ### 6. Recarregar quando mudar algo

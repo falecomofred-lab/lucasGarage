@@ -307,6 +307,19 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
         logger.error(f"Erro ao salvar carro: {e}")
         return RedirectResponse(url=f"/edit/{car_id}", status_code=303)
 
+@app.post("/delete/{car_id}")
+async def delete_car_action(car_id: int, db=Depends(get_db)):
+    """Exclui um carro da coleção (ação do Lucas na tela de edição)."""
+    from fastapi.responses import RedirectResponse
+    import logging
+    logger = logging.getLogger(__name__)
+
+    repo = SQLAlchemyCarRepository(db)
+    ok = await repo.delete(car_id)
+    logger.info(f"Carro {car_id} excluído: {ok}")
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.post("/edit/{car_id}/photos")
 async def upload_photos(car_id: int, request: Request, db=Depends(get_db)):
     """Salva as fotos do carro (principal, frente, traseira)."""

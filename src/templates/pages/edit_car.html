@@ -243,6 +243,25 @@
             </a>
         </div>
         {% endif %}
+
+        {% if has_car %}
+        <!-- ═══════════ ZONA DE PERIGO — EXCLUIR ═══════════ -->
+        <div class="mt-8 p-5 rounded-2xl border border-red-500/30 bg-red-500/5">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                    <h4 class="font-display font-bold text-red-400">Excluir este carro</h4>
+                    <p class="text-xs text-gray-500 mt-1">Remove o card da coleção. Esta ação não pode ser desfeita.</p>
+                </div>
+                <form method="POST" action="/delete/{{ car.id }}"
+                      onsubmit="return confirm('Excluir &quot;{{ car.name }}&quot; da coleção? Esta ação não pode ser desfeita.');">
+                    <button type="submit"
+                        class="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-lg transition-all shadow-lg shadow-red-600/20 whitespace-nowrap">
+                        🗑️ Excluir carro
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 
