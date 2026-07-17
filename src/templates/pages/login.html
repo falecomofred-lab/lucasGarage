@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Entrar · Lucas Garage{% endblock %}
+
+{% block content %}
+<div class="w-full min-h-[70vh] flex items-center justify-center px-4">
+    <div class="w-full max-w-sm">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 mx-auto bg-garage-ferrari rounded-full flex items-center justify-center shadow-lg shadow-garage-ferrari/30 mb-4">
+                <span class="font-display font-bold text-white text-3xl">L</span>
+            </div>
+            <h1 class="font-display text-2xl font-bold">LUCAS <span class="text-garage-ferrari">GARAGE</span></h1>
+            <p class="text-gray-500 text-sm mt-2">Área do colecionador — acesso restrito</p>
+        </div>
+
+        {% if erro %}
+        <div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm text-center">
+            Senha incorreta. Tente de novo.
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/login" class="glass-card p-6 rounded-3xl space-y-4">
+            <div>
+                <label class="block text-sm font-bold mb-2">🔒 Senha</label>
+                <input type="password" name="password" autofocus required
+                    placeholder="Digite a senha do painel"
+                    class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white placeholder-gray-600 focus:border-garage-ferrari outline-none transition-all">
+            </div>
+            <button type="submit"
+                class="w-full bg-garage-ferrari hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-garage-ferrari/20">
+                Entrar
+            </button>
+        </form>
+
+        <p class="text-center text-xs text-gray-600 mt-6">
+            Seus amigos veem a <a href="/vitrine" class="text-garage-ferrari hover:underline">vitrine pública</a> sem precisar de senha.
+        </p>
+    </div>
+</div>
+{% endblock %}

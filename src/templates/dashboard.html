@@ -22,6 +22,10 @@
                     <span class="relative z-10 flex items-center justify-center gap-2">🏎️ Novo Carro</span>
                     <div class="absolute inset-0 bg-white/20 transform translate-x-full group-hover:translate-x-0 transition-transform duration-300"></div>
                 </a>
+                <a href="/logout" title="Sair"
+                   class="bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm text-center">
+                    ⏻ Sair
+                </a>
             </div>
         </div>
 
@@ -52,13 +56,30 @@
         </div>
     </header>
 
+    <!-- FILTRO POR MONTADORA -->
+    {% if filter_mfrs %}
+    <div class="max-w-7xl mx-auto mb-5 flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+        <button type="button" onclick="filtrarMontadora('all', this)"
+            class="filtro-btn shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all bg-garage-ferrari text-white">
+            Todas
+        </button>
+        {% for nome in filter_mfrs %}
+        <button type="button" onclick="filtrarMontadora('{{ nome|e }}', this)"
+            class="filtro-btn shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all bg-white/10 text-gray-300 hover:bg-white/20 whitespace-nowrap">
+            {{ nome }}
+        </button>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- GRID DE CARDS - MOBILE FIRST -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-7xl mx-auto">
+    <div id="cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-7xl mx-auto">
         {% for car in cars %}
         {% set mfr = mfr_map.get(car.manufacturer_id) %}
 
         <!-- CARD: TOCAR EM QUALQUER LUGAR ABRE A EDIÇÃO -->
         <div onclick="location.href='/edit/{{ car.id }}'"
+             data-mfr="{{ (mfr.name if mfr else 'Outros')|e }}"
              class="car-card group relative flex flex-col rounded-3xl overflow-hidden bg-garage-dark border border-white/5 cursor-pointer shadow-lg shadow-black/40">
 
             <!-- ZONA DA IMAGEM (enquadramento uniforme 4:3) -->
@@ -152,4 +173,19 @@
     }
 }
 </style>
+
+<script>
+// Filtro por montadora (client-side, instantâneo)
+function filtrarMontadora(nome, botao) {
+    document.querySelectorAll('.car-card').forEach(function (card) {
+        card.style.display = (nome === 'all' || card.dataset.mfr === nome) ? '' : 'none';
+    });
+    document.querySelectorAll('.filtro-btn').forEach(function (b) {
+        b.classList.remove('bg-garage-ferrari', 'text-white');
+        b.classList.add('bg-white/10', 'text-gray-300');
+    });
+    botao.classList.remove('bg-white/10', 'text-gray-300');
+    botao.classList.add('bg-garage-ferrari', 'text-white');
+}
+</script>
 {% endblock %}

@@ -42,8 +42,57 @@ jinja_env = Environment(
     cache_size=0
 )
 
+# ══════════════ LOGIN SIMPLES (protege o painel do Lucas) ══════════════
+import hmac, hashlib
+from fastapi.responses import RedirectResponse
+
+AUTH_COOKIE = "lg_auth"
+
+def _auth_token() -> str:
+    return hmac.new(settings.SECRET_KEY.encode(), b"lucas-garage-authed", hashlib.sha256).hexdigest()
+
+def is_authed(request: Request) -> bool:
+    return request.cookies.get(AUTH_COOKIE) == _auth_token()
+
+def _needs_login(request: Request):
+    """Se não estiver logado, devolve um redirect para /login; senão None."""
+    if not is_authed(request):
+        return RedirectResponse(url="/login", status_code=303)
+    return None
+
+
+@app.get("/login")
+async def login_page(request: Request):
+    template = jinja_env.get_template("pages/login.html")
+    erro = request.query_params.get("erro") == "1"
+    return HTMLResponse(template.render(request=request, erro=erro))
+
+
+@app.post("/login")
+async def do_login(request: Request):
+    form = await request.form()
+    senha = (form.get("password", "") or "").strip()
+    if senha == settings.DASHBOARD_PASSWORD:
+        resp = RedirectResponse(url="/", status_code=303)
+        resp.set_cookie(AUTH_COOKIE, _auth_token(), httponly=True,
+                        max_age=60 * 60 * 24 * 30, samesite="lax")
+        return resp
+    return RedirectResponse(url="/login?erro=1", status_code=303)
+
+
+@app.get("/logout")
+async def logout():
+    resp = RedirectResponse(url="/login", status_code=303)
+    resp.delete_cookie(AUTH_COOKIE)
+    return resp
+
+
 @app.get("/")
 async def dashboard(request: Request, db=Depends(get_db)):
+    guard = _needs_login(request)
+    if guard:
+        return guard
+
     from src.infra.repositories import SQLAlchemyManufacturerRepository
 
     repo = SQLAlchemyCarRepository(db)
@@ -70,6 +119,12 @@ async def dashboard(request: Request, db=Depends(get_db)):
     total_score = sum(score_map.values())
     level = collector_level(total_score)
 
+    # Montadoras que têm carros (para o filtro no topo)
+    filter_mfrs = sorted({
+        (mfr_map[c.manufacturer_id].name if c.manufacturer_id in mfr_map else "Outros")
+        for c in cars
+    })
+
     template = jinja_env.get_template("dashboard.html")
     html = template.render(
         request=request,
@@ -81,7 +136,8 @@ async def dashboard(request: Request, db=Depends(get_db)):
         score_map=score_map,
         rarity_map=rarity_map,
         total_score=total_score,
-        level=level
+        level=level,
+        filter_mfrs=filter_mfrs
     )
     return HTMLResponse(content=html)
 
@@ -265,6 +321,9 @@ async def add_comment(car_id: int, request: Request, db=Depends(get_db)):
 
 @app.get("/edit/{car_id}")
 async def edit_car_page(car_id: int, request: Request, db=Depends(get_db)):
+    guard = _needs_login(request)
+    if guard:
+        return guard
     from src.infra.repositories import SQLAlchemyManufacturerRepository, SQLAlchemyCategoryRepository
 
     car_repo = SQLAlchemyCarRepository(db)
@@ -334,6 +393,10 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
     from src.core.entities import CarClass, CarStatus, Car
     from fastapi.responses import RedirectResponse
     import logging
+
+    guard = _needs_login(request)
+    if guard:
+        return guard
 
     logger = logging.getLogger(__name__)
 
@@ -414,10 +477,15 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
         return RedirectResponse(url=f"/edit/{car_id}", status_code=303)
 
 @app.post("/delete/{car_id}")
-async def delete_car_action(car_id: int, db=Depends(get_db)):
+async def delete_car_action(car_id: int, request: Request, db=Depends(get_db)):
     """Exclui um carro da coleção (ação do Lucas na tela de edição)."""
     from fastapi.responses import RedirectResponse
     import logging
+
+    guard = _needs_login(request)
+    if guard:
+        return guard
+
     logger = logging.getLogger(__name__)
 
     repo = SQLAlchemyCarRepository(db)
@@ -430,6 +498,10 @@ async def delete_car_action(car_id: int, db=Depends(get_db)):
 async def upload_photos(car_id: int, request: Request, db=Depends(get_db)):
     """Salva as fotos do carro (principal, frente, traseira)."""
     import uuid
+
+    guard = _needs_login(request)
+    if guard:
+        return guard
 
     repo = SQLAlchemyCarRepository(db)
     car = await repo.get_by_id(car_id)
