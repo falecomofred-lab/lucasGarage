@@ -124,13 +124,23 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-bold mb-2">🏢 Montadora *</label>
-                    <select name="manufacturer_id" id="manufacturer_id"
-                        class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white focus:border-garage-ferrari outline-none transition-all" required>
-                        <option value="">Selecione a marca...</option>
-                        {% for mfr in manufacturers | sort(attribute='name') %}
-                        <option value="{{ mfr.id }}" {% if has_car and car.manufacturer_id == mfr.id %}selected{% endif %}>{{ mfr.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="space-y-3">
+                        <select name="manufacturer_id" id="manufacturer_id" onchange="updateManufacturerLogo()"
+                            class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white focus:border-garage-ferrari outline-none transition-all" required>
+                            <option value="">Selecione a marca...</option>
+                            {% for mfr in manufacturers | sort(attribute='name') %}
+                            <option value="{{ mfr.id }}" data-logo="{{ mfr.logo_url }}" {% if has_car and car.manufacturer_id == mfr.id %}selected{% endif %}>{{ mfr.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <!-- Logo da Montadora -->
+                        <div id="logo-container" class="h-16 bg-black/30 border border-white/10 rounded-lg flex items-center justify-center overflow-hidden p-2">
+                            {% if manufacturer_logo %}
+                            <img id="manufacturer-logo-img" src="{{ manufacturer_logo }}" alt="Logo" class="max-h-full max-w-full object-contain">
+                            {% else %}
+                            <p class="text-xs text-gray-500">Logo da marca aparecerá aqui</p>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-bold mb-2">🏷️ Categoria *</label>
@@ -314,5 +324,20 @@ document.getElementById('car-form').addEventListener('submit', function() {
     btn.innerHTML = '⏳ Salvando...';
     btn.disabled = true;
 });
+
+// ══════ Atualizar logo da montadora dinamicamente ══════
+function updateManufacturerLogo() {
+    const select = document.getElementById('manufacturer_id');
+    const container = document.getElementById('logo-container');
+    const selected = select.options[select.selectedIndex];
+    const logoUrl = selected.getAttribute('data-logo');
+
+    if (logoUrl && logoUrl.trim()) {
+        let imgHtml = `<img id="manufacturer-logo-img" src="${logoUrl}" alt="Logo" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'">`;
+        container.innerHTML = imgHtml;
+    } else {
+        container.innerHTML = '<p class="text-xs text-gray-500">Logo da marca aparecerá aqui</p>';
+    }
+}
 </script>
 {% endblock %}
