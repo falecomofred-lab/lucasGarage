@@ -234,3 +234,63 @@ async def upload_car_images(
     await repo.save(car)
 
     return {"car_id": car_id, "uploaded_count": len(uploaded_urls), "urls": uploaded_urls}
+
+
+# ============================================================================
+# COMENTÁRIOS E AVALIAÇÕES
+# ============================================================================
+
+class CommentRequest(BaseModel):
+    author_name: str
+    author_email: Optional[str] = None
+    rating: int  # 1-5
+    text: str
+
+class CommentResponse(BaseModel):
+    id: int
+    car_id: int
+    author_name: str
+    rating: int
+    text: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+@router.post("/{car_id}/comments")
+async def add_comment(car_id: int, comment: CommentRequest, db=Depends(get_db)):
+    """Adiciona um comentário/avaliação ao carro"""
+    from src.infra.repositories import SQLAlchemyCarRepository
+
+    repo = SQLAlchemyCarRepository(db)
+    car = await repo.get_by_id(car_id)
+    if not car:
+        raise HTTPException(status_code=404, detail="Carro não encontrado")
+
+    if comment.rating < 1 or comment.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating deve ser entre 1 e 5")
+
+    from src.infra.database import CommentModel
+
+    new_comment = CommentModel(
+        car_id=car_id,
+        author_name=comment.author_name,
+        author_email=comment.author_email,
+        rating=comment.rating,
+        text=comment.text
+    )
+    db.add(new_comment)
+    db.commit()
+    db.refresh(new_comment)
+
+    return CommentResponse.from_orm(new_comment)
+
+
+@router.get("/{car_id}/comments", response_model=List[CommentResponse])
+async def get_comments(car_id: int, db=Depends(get_db)):
+    """Lista todos os comentários de um carro"""
+    from src.infra.database import CommentModel
+
+    comments = db.query(CommentModel).filter(CommentModel.car_id == car_id).order_by(CommentModel.created_at.desc()).all()
+    return [CommentResponse.from_orm(c) for c in comments]

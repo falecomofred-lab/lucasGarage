@@ -54,6 +54,19 @@ class CarModel(Base):
     # relationships
     manufacturer = relationship("ManufacturerModel", back_populates="cars")
     category = relationship("CategoryModel", back_populates="cars")
+    comments = relationship("CommentModel", back_populates="car", cascade="all, delete-orphan")
+
+class CommentModel(Base):
+    __tablename__ = "comments"
+    id = Column(Integer, primary_key=True, index=True)
+    car_id = Column(Integer, ForeignKey("cars.id"), nullable=False)
+    author_name = Column(String(100), nullable=False)
+    author_email = Column(String(100))
+    rating = Column(Integer, nullable=False)  # 1-5 estrelas
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    # relationship
+    car = relationship("CarModel", back_populates="comments")
 
 def get_db():
     db = SessionLocal()

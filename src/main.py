@@ -87,6 +87,7 @@ async def car_detail(car_id: int, request: Request, db=Depends(get_db)):
     """Card digital premium do carro — com QR Code e compartilhamento."""
     from src.infra.repositories import SQLAlchemyManufacturerRepository
     from src.utils.generators import calculate_score, rarity_label, car_qrcode
+    from src.infra.database import CommentModel
 
     car_repo = SQLAlchemyCarRepository(db)
     mfr_repo = SQLAlchemyManufacturerRepository(db)
@@ -113,6 +114,10 @@ async def car_detail(car_id: int, request: Request, db=Depends(get_db)):
         f"Veja na minha coleção Lucas Garage: {base_url}/car/{car.id}"
     )
 
+    # Buscar comentários
+    comments = db.query(CommentModel).filter(CommentModel.car_id == car_id).order_by(CommentModel.created_at.desc()).all()
+    avg_rating = sum(c.rating for c in comments) / len(comments) if comments else 0
+
     template = jinja_env.get_template("pages/detail.html")
     html = template.render(
         request=request,
@@ -126,6 +131,9 @@ async def car_detail(car_id: int, request: Request, db=Depends(get_db)):
         class_label=class_val.title(),
         qrcode=car_qrcode(car.id, base_url),
         share_text=share_text,
+        comments=comments,
+        avg_rating=round(avg_rating, 1),
+        total_comments=len(comments),
     )
     return HTMLResponse(content=html)
 

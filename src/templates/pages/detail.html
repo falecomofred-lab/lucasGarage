@@ -109,6 +109,87 @@
             </div>
         </div>
     </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- COMENTÁRIOS E AVALIAÇÕES DOS AMIGOS DO LUCAS -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div class="max-w-5xl mx-auto mt-16 px-4">
+        <div class="border-t border-white/10 pt-12">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-3xl font-display font-bold">✨ Avaliações dos Amigos</h2>
+                <div class="text-sm text-gray-500">
+                    <span class="text-garage-ferrari font-bold">⭐ {{ avg_rating }}/5</span> ({{ total_comments }} comentários)
+                </div>
+            </div>
+
+            <!-- FORMULÁRIO DE COMENTÁRIO -->
+            <div class="glass-card p-6 rounded-3xl border-garage-ferrari/20 mb-8">
+                <h3 class="font-display font-bold text-lg mb-4">Deixa sua avaliação!</h3>
+                <form id="comment-form" onsubmit="submitComment(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Seu Nome</label>
+                        <input type="text" name="author_name" required placeholder="Ex: João Lucas"
+                               class="w-full bg-garage-graphite border border-white/5 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-garage-ferrari">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Email (opcional)</label>
+                        <input type="email" name="author_email" placeholder="seu@email.com"
+                               class="w-full bg-garage-graphite border border-white/5 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-garage-ferrari">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Sua Avaliação</label>
+                        <div class="flex gap-2" id="star-rating">
+                            <input type="hidden" name="rating" value="5" id="rating-value">
+                            {% for i in range(1, 6) %}
+                            <button type="button" onclick="setRating({{ i }})"
+                                    class="star-btn text-4xl transition-all hover:scale-110 {% if i <= 5 %}text-garage-ferrari{% else %}text-gray-600{% endif %}"
+                                    data-rating="{{ i }}">
+                                ⭐
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Comentário</label>
+                        <textarea name="text" required rows="3" placeholder="O que você achou dessa miniatura?"
+                                  class="w-full bg-garage-graphite border border-white/5 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-garage-ferrari"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-gradient-to-r from-garage-ferrari to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-3 rounded-lg transition-all">
+                        ✅ Enviar Avaliação
+                    </button>
+                </form>
+            </div>
+
+            <!-- LISTA DE COMENTÁRIOS -->
+            <div class="space-y-4">
+                {% for comment in comments %}
+                <div class="glass-card p-6 rounded-2xl border-white/10">
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <p class="font-bold text-white">{{ comment.author_name }}</p>
+                            <p class="text-xs text-gray-500 mt-1">{{ comment.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                        </div>
+                        <div class="text-lg">
+                            {% for i in range(1, 6) %}
+                                {% if i <= comment.rating %}<span class="text-garage-ferrari">⭐</span>{% else %}<span class="text-gray-600">☆</span>{% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <p class="text-gray-300 text-sm leading-relaxed">{{ comment.text }}</p>
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-gray-500">
+                    <p class="mb-2">😢 Nenhum comentário ainda...</p>
+                    <p class="text-xs">Seja o primeiro a avaliar este carro!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -142,5 +223,63 @@ async function shareCard() {
         label.textContent = original;
     }
 }
+
+// ════════════════════════════════════════════════════════════════
+// SISTEMA DE AVALIAÇÕES COM ESTRELAS
+// ════════════════════════════════════════════════════════════════
+
+function setRating(rating) {
+    document.getElementById('rating-value').value = rating;
+    const stars = document.querySelectorAll('.star-btn');
+    stars.forEach((star, idx) => {
+        if (idx + 1 <= rating) {
+            star.textContent = '⭐';
+            star.classList.add('text-garage-ferrari');
+            star.classList.remove('text-gray-600');
+        } else {
+            star.textContent = '⭐';
+            star.classList.remove('text-garage-ferrari');
+            star.classList.add('text-gray-600');
+        }
+    });
+}
+
+async function submitComment(e) {
+    e.preventDefault();
+
+    const formData = new FormData(document.getElementById('comment-form'));
+    const data = {
+        author_name: formData.get('author_name'),
+        author_email: formData.get('author_email'),
+        rating: parseInt(formData.get('rating')),
+        text: formData.get('text')
+    };
+
+    try {
+        const response = await fetch('/api/cars/{{ car.id }}/comments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            alert('✅ Comentário enviado com sucesso!');
+            document.getElementById('comment-form').reset();
+            setRating(5);
+            // Recarregar página para mostrar novo comentário
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            alert('❌ Erro ao enviar comentário. Tente novamente.');
+        }
+    } catch (error) {
+        alert('❌ Erro na conexão. Tente novamente.');
+        console.error(error);
+    }
+}
+
+// Inicializar estrelas no carregamento
+document.addEventListener('DOMContentLoaded', () => {
+    setRating(5);
+});
 </script>
 {% endblock %}
