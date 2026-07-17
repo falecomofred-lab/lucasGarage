@@ -124,13 +124,20 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-bold mb-2">🏢 Montadora *</label>
-                    <select name="manufacturer_id" id="manufacturer_id"
-                        class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white focus:border-garage-ferrari outline-none transition-all" required>
-                        <option value="">Selecione a marca...</option>
-                        {% for mfr in manufacturers | sort(attribute='name') %}
-                        <option value="{{ mfr.id }}" {% if has_car and car.manufacturer_id == mfr.id %}selected{% endif %}>{{ mfr.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="flex items-center gap-3">
+                        <select name="manufacturer_id" id="manufacturer_id" onchange="updateLogoPreview()"
+                            class="flex-1 bg-black/40 border border-white/20 rounded-lg p-3 text-white focus:border-garage-ferrari outline-none transition-all" required>
+                            <option value="">Selecione a marca...</option>
+                            {% for mfr in manufacturers | sort(attribute='name') %}
+                            <option value="{{ mfr.id }}" {% if has_car and car.manufacturer_id == mfr.id %}selected{% endif %}>{{ mfr.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <!-- Preview automático do logo -->
+                        <div id="logo-preview-box" class="w-14 h-14 rounded-xl bg-white/95 shadow flex items-center justify-center p-1.5 shrink-0 hidden">
+                            <img id="logo-preview-img" src="" alt="" class="max-w-full max-h-full object-contain"
+                                 onerror="document.getElementById('logo-preview-box').classList.add('hidden')">
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-bold mb-2">🏷️ Categoria *</label>
@@ -271,6 +278,23 @@
     const t = document.getElementById('toast-saved');
     if (t) setTimeout(() => { t.style.transition='opacity .4s'; t.style.opacity='0'; }, 2500);
 })();
+
+// ══════ Logo automático ao escolher a montadora ══════
+const LOGO_MAP = {{ logo_map | tojson }};
+function updateLogoPreview() {
+    const sel = document.getElementById('manufacturer_id');
+    const box = document.getElementById('logo-preview-box');
+    const img = document.getElementById('logo-preview-img');
+    const url = LOGO_MAP[sel.value] || '';
+    if (url) {
+        img.src = url;
+        box.classList.remove('hidden');
+    } else {
+        box.classList.add('hidden');
+    }
+}
+// mostra o logo já ao abrir (se o carro já tem montadora)
+document.addEventListener('DOMContentLoaded', updateLogoPreview);
 
 // ══════ Compartilhar card-imagem ══════
 {% if has_car %}

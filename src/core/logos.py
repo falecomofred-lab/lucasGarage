@@ -1,87 +1,79 @@
 """
-Logos das montadoras — URLs confiáveis via Clearbit Logo API.
-Funciona direto no navegador, sem API key, sem script de download.
+Logos das montadoras — imagens coloridas gratuitas (car-logos-dataset, licença MIT),
+servidas pela CDN jsDelivr. Funciona direto no navegador, sem API key.
 
-Formato: https://logo.clearbit.com/{dominio-da-marca}
+Fonte: https://github.com/filippofilip95/car-logos-dataset
 """
 
-# Nome da montadora -> domínio oficial
-MANUFACTURER_DOMAINS = {
-    "Ferrari": "ferrari.com",
-    "Lamborghini": "lamborghini.com",
-    "Maserati": "maserati.com",
-    "Alfa Romeo": "alfaromeo.com",
-    "Lancia": "lancia.com",
-    "Pagani": "pagani.com",
-    "Porsche": "porsche.com",
-    "BMW": "bmw.com",
-    "Mercedes-Benz": "mercedes-benz.com",
-    "Audi": "audi.com",
-    "Volkswagen": "vw.com",
-    "Opel": "opel.com",
-    "Maybach": "mercedes-benz.com",
-    "McLaren": "mclaren.com",
-    "Jaguar": "jaguar.com",
-    "Rolls-Royce": "rolls-roycemotorcars.com",
-    "Bentley": "bentleymotors.com",
-    "Aston Martin": "astonmartin.com",
-    "Lotus": "lotuscars.com",
-    "MG": "mg.co.uk",
-    "Bugatti": "bugatti.com",
-    "Renault": "renault.com",
-    "Peugeot": "peugeot.com",
-    "Citroën": "citroen.com",
-    "Alpine": "alpinecars.com",
-    "Ford": "ford.com",
-    "Chevrolet": "chevrolet.com",
-    "Dodge": "dodge.com",
-    "Plymouth": "stellantis.com",
-    "Pontiac": "gm.com",
-    "Oldsmobile": "gm.com",
-    "Cadillac": "cadillac.com",
-    "Corvette": "chevrolet.com",
-    "Shelby": "shelby.com",
-    "Hummer": "gmc.com",
-    "Volvo": "volvocars.com",
-    "Saab": "saab.com",
-    "Koenigsegg": "koenigsegg.com",
-    "Toyota": "toyota.com",
-    "Nissan": "nissan-global.com",
-    "Honda": "honda.com",
-    "Mazda": "mazda.com",
-    "Suzuki": "globalsuzuki.com",
-    "Mitsubishi": "mitsubishi-motors.com",
-    "Subaru": "subaru.com",
-    "Daihatsu": "daihatsu.com",
-    "Isuzu": "isuzu.co.jp",
-    "Lexus": "lexus.com",
-    "Acura": "acura.com",
-    "Infiniti": "infiniti.com",
-    "Hyundai": "hyundai.com",
-    "Kia": "kia.com",
-    "Seat": "seat.com",
-    "Caterham": "caterhamcars.com",
-    "Holden": "gm.com",
-    "Tata": "tatamotors.com",
-    "Mahindra": "mahindra.com",
+import re
+import unicodedata
+
+BASE = "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/"
+
+# Nome da montadora (como está no banco) -> nome do arquivo (slug) no dataset
+SLUGS = {
+    "Ferrari": "ferrari",
+    "Volkswagen": "volkswagen",
+    "Lamborghini": "lamborghini",
+    "Ford": "ford",
+    "Chevrolet": "chevrolet",
+    "Fiat": "fiat",
+    "Porsche": "porsche",
+    "BMW": "bmw",
+    "Mercedes-Benz": "mercedes-benz",
+    "Mercedes": "mercedes-benz",
+    "Toyota": "toyota",
+    "Jaguar": "jaguar",
+    "Nissan": "nissan",
+    "Mitsubishi": "mitsubishi",
+    "Jeep": "jeep",
+    "Renault": "renault",
+    "Kia": "kia",
+    "Hummer": "hummer",
+    "Aston Martin": "aston-martin",
+    "Dodge": "dodge",
+    "Maserati": "maserati",
+    "McLaren": "mclaren",
+    "Bugatti": "bugatti",
+    "Audi": "audi",
+    "Honda": "honda",
+    "Alfa Romeo": "alfa-romeo",
+    "Peugeot": "peugeot",
+    "Citroën": "citroen",
+    "Volvo": "volvo",
+    "Mini": "mini",
+    "Suzuki": "suzuki",
+    "Subaru": "subaru",
+    "Hyundai": "hyundai",
+    "Lexus": "lexus",
+    "Land Rover": "land-rover",
+    "Bentley": "bentley",
+    "Rolls-Royce": "rolls-royce",
+    "Koenigsegg": "koenigsegg",
+    "Pagani": "pagani",
 }
+
+
+def _slugify(name: str) -> str:
+    s = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+    s = re.sub(r"[^a-z0-9]+", "-", s.lower().strip()).strip("-")
+    return s
 
 
 def get_logo_url(manufacturer_name: str, db_logo_url: str | None = None) -> str | None:
     """
-    Retorna a melhor URL de logo disponível:
-    1. URL local (/static/...) salva no banco
-    2. Clearbit (sempre funciona no navegador)
-    3. URL externa salva no banco
+    Retorna a URL do logo da montadora:
+    1. Logo local salva no banco (/static/...) tem prioridade
+    2. car-logos-dataset (CDN jsDelivr) pelo nome da marca
+    3. None se não houver marca (o template esconde o selo)
     """
-    # Logo local baixada tem prioridade máxima
     if db_logo_url and db_logo_url.startswith("/static"):
         return db_logo_url
 
-    # Clearbit: confiável, sem key
-    domain = MANUFACTURER_DOMAINS.get(manufacturer_name)
-    if domain:
-        return f"https://logo.clearbit.com/{domain}"
+    if not manufacturer_name or manufacturer_name.strip().lower() in ("outros", "outro", "—", ""):
+        return None
 
-    # Fallback: o que tiver no banco
-    return db_logo_url
+    slug = SLUGS.get(manufacturer_name) or _slugify(manufacturer_name)
+    if not slug:
+        return None
+    return f"{BASE}{slug}.png"
