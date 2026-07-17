@@ -241,7 +241,7 @@ async def upload_car_images(
 # ============================================================================
 
 class CommentRequest(BaseModel):
-    author_name: str
+    author_name: Optional[str] = None
     author_email: Optional[str] = None
     rating: int  # 1-5
     text: str
@@ -249,7 +249,7 @@ class CommentRequest(BaseModel):
 class CommentResponse(BaseModel):
     id: int
     car_id: int
-    author_name: str
+    author_name: Optional[str]
     rating: int
     text: str
     created_at: datetime

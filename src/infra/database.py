@@ -60,7 +60,7 @@ class CommentModel(Base):
     __tablename__ = "comments"
     id = Column(Integer, primary_key=True, index=True)
     car_id = Column(Integer, ForeignKey("cars.id"), nullable=False)
-    author_name = Column(String(100), nullable=False)
+    author_name = Column(String(100), nullable=True)
     author_email = Column(String(100))
     rating = Column(Integer, nullable=False)  # 1-5 estrelas
     text = Column(Text, nullable=False)

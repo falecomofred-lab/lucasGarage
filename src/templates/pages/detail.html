@@ -127,8 +127,8 @@
                 <h3 class="font-display font-bold text-lg mb-4">Deixa sua avaliação!</h3>
                 <form id="comment-form" onsubmit="submitComment(event)" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Seu Nome</label>
-                        <input type="text" name="author_name" required placeholder="Ex: João Lucas"
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Seu Nome (opcional)</label>
+                        <input type="text" name="author_name" placeholder="Ex: João Lucas (deixar em branco para anônimo)"
                                class="w-full bg-garage-graphite border border-white/5 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-garage-ferrari">
                     </div>
 
@@ -170,7 +170,7 @@
                 <div class="glass-card p-6 rounded-2xl border-white/10">
                     <div class="flex items-start justify-between mb-3">
                         <div>
-                            <p class="font-bold text-white">{{ comment.author_name }}</p>
+                            <p class="font-bold text-white">{{ comment.author_name or "Anônimo" }}</p>
                             <p class="text-xs text-gray-500 mt-1">{{ comment.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
                         </div>
                         <div class="text-lg">
