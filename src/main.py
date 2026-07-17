@@ -82,6 +82,45 @@ async def dashboard(request: Request, db=Depends(get_db)):
     return HTMLResponse(content=html)
 
 
+@app.get("/vitrine")
+async def vitrine(request: Request, db=Depends(get_db)):
+    """Página pública/premium da coleção — feita para o Lucas compartilhar com amigos."""
+    from src.infra.repositories import SQLAlchemyManufacturerRepository
+    from src.utils.generators import calculate_score, collector_level, rarity_label
+
+    repo = SQLAlchemyCarRepository(db)
+    mfr_repo = SQLAlchemyManufacturerRepository(db)
+
+    all_cars = await repo.get_all()
+    manufacturers = await mfr_repo.get_all()
+    mfr_map = {m.id: m for m in manufacturers}
+
+    # Mostra só os publicados; se nenhum estiver publicado ainda, mostra todos
+    def _st(c):
+        return c.status.value if hasattr(c.status, "value") else c.status
+    publicados = [c for c in all_cars if _st(c) == "published"]
+    cars = publicados if publicados else all_cars
+
+    score_map = {c.id: calculate_score(c) for c in all_cars}
+    rarity_map = {c.id: rarity_label(c) for c in all_cars}
+    total_score = sum(score_map.values())
+    level = collector_level(total_score)
+
+    template = jinja_env.get_template("pages/vitrine.html")
+    html = template.render(
+        request=request,
+        cars=sorted(cars, key=lambda c: (score_map.get(c.id, 0)), reverse=True),
+        mfr_map=mfr_map,
+        score_map=score_map,
+        rarity_map=rarity_map,
+        total=len(all_cars),
+        shown=len(cars),
+        total_score=total_score,
+        level=level,
+    )
+    return HTMLResponse(content=html)
+
+
 @app.get("/car/{car_id}")
 async def car_detail(car_id: int, request: Request, db=Depends(get_db)):
     """Card digital premium do carro — com QR Code e compartilhamento."""

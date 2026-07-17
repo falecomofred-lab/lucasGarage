@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Vitrine · Lucas Garage{% endblock %}
+
+{% block content %}
+<style>
+    /* ══════ VITRINE PREMIUM — BORDAS FUTURISTAS (HUD) ══════ */
+    .vitrine-hero {
+        position: relative;
+        border: 1px solid rgba(255,40,0,.25);
+        background:
+            radial-gradient(120% 120% at 50% -20%, rgba(255,40,0,.18), transparent 60%),
+            linear-gradient(180deg, rgba(23,23,23,.9), rgba(10,10,10,.9));
+        clip-path: polygon(0 22px, 22px 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
+    }
+    .vitrine-card {
+        position: relative;
+        background: linear-gradient(160deg, #171717, #0a0a0a);
+        border: 1px solid rgba(255,255,255,.06);
+        clip-path: polygon(0 16px, 16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+        transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease, border-color .35s ease;
+    }
+    .vitrine-card:hover {
+        transform: translateY(-6px);
+        border-color: rgba(255,40,0,.6);
+        box-shadow: 0 20px 45px rgba(0,0,0,.6), 0 0 30px rgba(255,40,0,.35);
+    }
+    /* Cantos em L (estilo HUD) */
+    .corner { position:absolute; width:16px; height:16px; z-index:5; pointer-events:none; opacity:.7; transition:opacity .3s, box-shadow .3s; }
+    .vitrine-card:hover .corner { opacity:1; }
+    .corner.tl { top:6px; left:6px; border-top:2px solid #ff2800; border-left:2px solid #ff2800; }
+    .corner.tr { top:6px; right:6px; border-top:2px solid #ff2800; border-right:2px solid #ff2800; }
+    .corner.bl { bottom:6px; left:6px; border-bottom:2px solid #ff2800; border-left:2px solid #ff2800; }
+    .corner.br { bottom:6px; right:6px; border-bottom:2px solid #ff2800; border-right:2px solid #ff2800; }
+    /* Linha superior em varredura */
+    .scanline { position:absolute; top:0; left:0; height:2px; width:100%; background:linear-gradient(90deg, transparent, #ff2800, transparent); opacity:.5; z-index:4; }
+    .vitrine-card:hover .scanline { opacity:1; box-shadow:0 0 10px rgba(255,40,0,.7); }
+    .card-photo { filter: contrast(1.07) saturate(1.12) brightness(1.02); }
+</style>
+
+<div class="w-full px-4 py-8 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+
+        <!-- ══════ HERO ══════ -->
+        <header class="vitrine-hero rounded-none p-6 sm:p-10 mb-10 text-center">
+            <p class="text-garage-ferrari text-[11px] font-bold tracking-[0.35em] uppercase mb-3">Coleção Premium · Miniaturas 1:32</p>
+            <h1 class="font-display text-4xl sm:text-6xl font-bold leading-tight mb-4">
+                LUCAS <span class="text-garage-ferrari">GARAGE</span>
+            </h1>
+            <div class="flex items-center justify-center gap-6 sm:gap-10 flex-wrap mt-6">
+                <div>
+                    <p class="font-display text-3xl sm:text-4xl font-bold text-white">{{ total }}</p>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Miniaturas</p>
+                </div>
+                <div class="w-px h-10 bg-white/10 hidden sm:block"></div>
+                <div>
+                    <p class="font-display text-3xl sm:text-4xl font-bold text-garage-ferrari">{{ total_score }}</p>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Collector Score</p>
+                </div>
+                <div class="w-px h-10 bg-white/10 hidden sm:block"></div>
+                <div>
+                    <p class="font-display text-lg sm:text-2xl font-bold text-white">{{ level }}</p>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Nível</p>
+                </div>
+            </div>
+
+            <!-- Compartilhar -->
+            <div class="mt-8 flex items-center justify-center gap-3 flex-wrap">
+                <button type="button" onclick="shareVitrine()"
+                    class="bg-garage-ferrari hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-garage-ferrari/30">
+                    🔗 Compartilhar coleção
+                </button>
+                <a href="/" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-xl transition-all">
+                    Voltar
+                </a>
+            </div>
+        </header>
+
+        <!-- ══════ GRID DA VITRINE ══════ -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {% for car in cars %}
+            {% set mfr = mfr_map.get(car.manufacturer_id) %}
+            {% set rar = rarity_map.get(car.id, 'C') %}
+            <a href="/car/{{ car.id }}" class="vitrine-card group flex flex-col">
+                <span class="corner tl"></span><span class="corner tr"></span>
+                <span class="corner bl"></span><span class="corner br"></span>
+                <span class="scanline"></span>
+
+                <!-- Foto 4:3 -->
+                <div class="relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite via-garage-dark to-black overflow-hidden">
+                    {% if car.image_urls and car.image_urls[0] %}
+                        <img src="{{ car.image_urls[0] }}" alt="{{ car.name }}" loading="lazy"
+                             class="card-photo absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105">
+                    {% else %}
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="font-display text-5xl font-bold text-white/15">1:32</span>
+                        </div>
+                    {% endif %}
+                    <!-- Ranking -->
+                    <span class="absolute top-3 left-3 z-10 bg-black/60 backdrop-blur-sm text-garage-ferrari font-display font-bold text-sm px-3 py-1 rounded">
+                        #{{ loop.index }}
+                    </span>
+                    <!-- Raridade -->
+                    <span class="absolute top-3 right-3 z-10 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm border
+                        {% if rar == 'S' %}text-yellow-300 border-yellow-400/50 bg-yellow-400/10
+                        {% elif rar == 'A' %}text-garage-ferrari border-garage-ferrari/50 bg-garage-ferrari/10
+                        {% elif rar == 'B' %}text-blue-300 border-blue-400/50 bg-blue-400/10
+                        {% else %}text-gray-300 border-white/20 bg-white/5{% endif %}">
+                        Classe {{ rar }}
+                    </span>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                </div>
+
+                <!-- Info -->
+                <div class="p-4 flex flex-col gap-2">
+                    <h3 class="font-display text-base font-bold text-white line-clamp-1 group-hover:text-garage-ferrari transition-colors">{{ car.name }}</h3>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider line-clamp-1">
+                        {{ mfr.name if mfr else '—' }} · {{ car.year or '—' }} · {{ car.color or 'sem cor' }}
+                    </p>
+                    <div class="flex items-center justify-between pt-2 border-t border-white/5">
+                        <span class="text-garage-ferrari font-display font-bold text-sm">⚡ {{ score_map.get(car.id, 0) }} pts</span>
+                        <span class="text-[10px] text-gray-500 uppercase tracking-wider">Ver card →</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        {% if not cars %}
+        <div class="text-center py-20">
+            <p class="text-2xl font-display font-bold mb-2">Coleção vazia</p>
+            <p class="text-gray-500">Cadastre carros para montar sua vitrine.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+async function shareVitrine() {
+    const url = window.location.href;
+    const dados = { title: 'Coleção Lucas Garage', text: 'Dá uma olhada na minha coleção de miniaturas! 🏎️', url };
+    try {
+        if (navigator.share) { await navigator.share(dados); return; }
+        await navigator.clipboard.writeText(url);
+        alert('Link copiado! Cole no WhatsApp para enviar aos amigos.');
+    } catch (e) { /* usuário cancelou */ }
+}
+</script>
+{% endblock %}
