@@ -28,6 +28,10 @@ app = FastAPI(
 # Registrar rotas da API
 app.include_router(cars_router)
 
+# Garante que todas as tabelas existam (inclui ratings e comments)
+from src.infra.database import Base, engine
+Base.metadata.create_all(bind=engine)
+
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
@@ -93,6 +97,9 @@ async def vitrine(request: Request, db=Depends(get_db)):
 
     all_cars = await repo.get_all()
     manufacturers = await mfr_repo.get_all()
+    # Logo garantida (Clearbit) para aparecer nos cards
+    for m in manufacturers:
+        m.logo_url = get_logo_url(m.name, m.logo_url)
     mfr_map = {m.id: m for m in manufacturers}
 
     # Mostra só os publicados; se nenhum estiver publicado ainda, mostra todos
@@ -106,6 +113,16 @@ async def vitrine(request: Request, db=Depends(get_db)):
     total_score = sum(score_map.values())
     level = collector_level(total_score)
 
+    # Média de estrelas e nº de comentários por carro
+    from src.infra.database import RatingModel, CommentModel
+    from sqlalchemy import func as safunc
+    rating_map = {}
+    for cid, avg, cnt in db.query(RatingModel.car_id, safunc.avg(RatingModel.stars), safunc.count(RatingModel.id)).group_by(RatingModel.car_id).all():
+        rating_map[cid] = {"avg": round(float(avg or 0), 1), "count": int(cnt or 0)}
+    comment_count_map = {}
+    for cid, cnt in db.query(CommentModel.car_id, safunc.count(CommentModel.id)).group_by(CommentModel.car_id).all():
+        comment_count_map[cid] = int(cnt or 0)
+
     template = jinja_env.get_template("pages/vitrine.html")
     html = template.render(
         request=request,
@@ -113,6 +130,8 @@ async def vitrine(request: Request, db=Depends(get_db)):
         mfr_map=mfr_map,
         score_map=score_map,
         rarity_map=rarity_map,
+        rating_map=rating_map,
+        comment_count_map=comment_count_map,
         total=len(all_cars),
         shown=len(cars),
         total_score=total_score,
@@ -194,6 +213,54 @@ async def car_share_card(car_id: int, db=Depends(get_db)):
 
     png = gerar_card(car, mfr_name, calculate_score(car), rarity_label(car), photo_path)
     return Response(content=png, media_type="image/png")
+
+
+# ══════════════ AVALIAÇÕES (ESTRELAS) E COMENTÁRIOS ══════════════
+
+@app.post("/car/{car_id}/rate")
+async def rate_car(car_id: int, request: Request, db=Depends(get_db)):
+    """Amigo do Lucas dá de 1 a 5 estrelas a um carro."""
+    from src.infra.database import RatingModel
+    from sqlalchemy import func as safunc
+
+    form = await request.form()
+    try:
+        stars = int(form.get("stars", 0))
+    except (TypeError, ValueError):
+        stars = 0
+    if stars < 1 or stars > 5:
+        return JSONResponse(content={"error": "estrelas de 1 a 5"}, status_code=400)
+
+    db.add(RatingModel(car_id=car_id, stars=stars))
+    db.commit()
+
+    avg, cnt = db.query(safunc.avg(RatingModel.stars), safunc.count(RatingModel.id))\
+        .filter(RatingModel.car_id == car_id).first()
+    return JSONResponse(content={"avg": round(float(avg or 0), 1), "count": int(cnt or 0)})
+
+
+@app.get("/car/{car_id}/comments")
+async def list_comments(car_id: int, db=Depends(get_db)):
+    """Lista os comentários de um carro (para a vitrine)."""
+    from src.infra.database import CommentModel
+    rows = db.query(CommentModel).filter(CommentModel.car_id == car_id)\
+        .order_by(CommentModel.created_at.desc()).all()
+    return JSONResponse(content=[{"author": r.author or "Anônimo", "text": r.text} for r in rows])
+
+
+@app.post("/car/{car_id}/comment")
+async def add_comment(car_id: int, request: Request, db=Depends(get_db)):
+    """Amigo do Lucas deixa um comentário em um carro."""
+    from src.infra.database import CommentModel
+    form = await request.form()
+    author = (form.get("author", "") or "").strip()[:60] or "Anônimo"
+    text = (form.get("text", "") or "").strip()[:500]
+    if not text:
+        return JSONResponse(content={"error": "comentário vazio"}, status_code=400)
+
+    db.add(CommentModel(car_id=car_id, author=author, text=text))
+    db.commit()
+    return JSONResponse(content={"ok": True, "author": author, "text": text})
 
 
 @app.get("/edit/{car_id}")

@@ -166,6 +166,10 @@
             transform: scale(0.98);
         }
 
+        /* ══════ SLIDESHOW DAS FOTOS (troca a cada 5s em loop) ══════ */
+        .slide { opacity: 0; transition: opacity .8s ease; z-index: 0; }
+        .slide.is-active { opacity: 1; z-index: 1; }
+
         /* ══════ TRATAMENTO PROFISSIONAL DAS FOTOS (visual colecionador) ══════ */
         .card-photo {
             filter: contrast(1.07) saturate(1.12) brightness(1.02);
@@ -317,5 +321,22 @@
             </div>
         </div>
     </footer>
+
+    <!-- SLIDESHOW: troca as fotos de cada card a cada 5 segundos, em loop -->
+    <script>
+    (function () {
+        function tick() {
+            document.querySelectorAll('.js-slideshow').forEach(function (box) {
+                var slides = box.querySelectorAll('.slide');
+                if (slides.length < 2) return;
+                var active = box.querySelector('.slide.is-active') || slides[0];
+                var idx = Array.prototype.indexOf.call(slides, active);
+                active.classList.remove('is-active');
+                slides[(idx + 1) % slides.length].classList.add('is-active');
+            });
+        }
+        setInterval(tick, 5000);
+    })();
+    </script>
 </body>
 </html>

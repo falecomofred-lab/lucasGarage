@@ -81,16 +81,21 @@
             {% for car in cars %}
             {% set mfr = mfr_map.get(car.manufacturer_id) %}
             {% set rar = rarity_map.get(car.id, 'C') %}
-            <a href="/car/{{ car.id }}" class="vitrine-card group flex flex-col">
+            {% set imgs = (car.image_urls or []) | select | list %}
+            {% set rt = rating_map.get(car.id, {'avg': 0, 'count': 0}) %}
+            <div class="vitrine-card group flex flex-col">
                 <span class="corner tl"></span><span class="corner tr"></span>
                 <span class="corner bl"></span><span class="corner br"></span>
                 <span class="scanline"></span>
 
-                <!-- Foto 4:3 -->
-                <div class="relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite via-garage-dark to-black overflow-hidden">
-                    {% if car.image_urls and car.image_urls[0] %}
-                        <img src="{{ car.image_urls[0] }}" alt="{{ car.name }}" loading="lazy"
-                             class="card-photo absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105">
+                <!-- Foto 4:3 (slideshow) — clique abre o card público -->
+                <div class="photo-frame js-slideshow relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite via-garage-dark to-black overflow-hidden cursor-pointer"
+                     onclick="location.href='/car/{{ car.id }}'">
+                    {% if imgs %}
+                        {% for img in imgs %}
+                        <img src="{{ img }}" alt="{{ car.name }}" loading="lazy"
+                             class="slide card-photo absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 {% if loop.first %}is-active{% endif %}">
+                        {% endfor %}
                     {% else %}
                         <div class="absolute inset-0 flex items-center justify-center">
                             <span class="font-display text-5xl font-bold text-white/15">1:32</span>
@@ -108,21 +113,39 @@
                         {% else %}text-gray-300 border-white/20 bg-white/5{% endif %}">
                         Classe {{ rar }}
                     </span>
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                    <!-- Logo da montadora -->
+                    {% if mfr and mfr.logo_url %}
+                    <div class="absolute bottom-3 left-3 z-10 w-11 h-11 rounded-full bg-white/95 shadow-lg flex items-center justify-center p-1.5">
+                        <img src="{{ mfr.logo_url }}" alt="{{ mfr.name }}" class="max-w-full max-h-full object-contain" onerror="this.parentElement.style.display='none'">
+                    </div>
+                    {% endif %}
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none"></div>
                 </div>
 
                 <!-- Info -->
-                <div class="p-4 flex flex-col gap-2">
-                    <h3 class="font-display text-base font-bold text-white line-clamp-1 group-hover:text-garage-ferrari transition-colors">{{ car.name }}</h3>
-                    <p class="text-xs text-gray-400 uppercase tracking-wider line-clamp-1">
-                        {{ mfr.name if mfr else '—' }} · {{ car.year or '—' }} · {{ car.color or 'sem cor' }}
-                    </p>
-                    <div class="flex items-center justify-between pt-2 border-t border-white/5">
-                        <span class="text-garage-ferrari font-display font-bold text-sm">⚡ {{ score_map.get(car.id, 0) }} pts</span>
-                        <span class="text-[10px] text-gray-500 uppercase tracking-wider">Ver card →</span>
+                <div class="p-4 flex flex-col gap-3">
+                    <div class="cursor-pointer" onclick="location.href='/car/{{ car.id }}'">
+                        <h3 class="font-display text-base font-bold text-white line-clamp-1 group-hover:text-garage-ferrari transition-colors">{{ car.name }}</h3>
+                        <p class="text-xs text-gray-400 uppercase tracking-wider line-clamp-1 mt-1">
+                            {{ mfr.name if mfr else '—' }} · {{ car.year or '—' }} · {{ car.color or 'sem cor' }}
+                        </p>
+                    </div>
+
+                    <!-- ESTRELAS (amigos avaliam) -->
+                    <div class="flex items-center justify-between">
+                        <div class="star-rating flex items-center gap-0.5" data-car="{{ car.id }}">
+                            {% for i in range(1,6) %}
+                            <button type="button" class="star text-xl leading-none transition-colors"
+                                    data-v="{{ i }}" title="{{ i }} estrela(s)"
+                                    style="color: {% if rt.avg >= i - 0.25 %}#ffb800{% else %}#3a3a3a{% endif %}">★</button>
+                            {% endfor %}
+                        </div>
+                        <span class="star-info text-[11px] text-gray-500">
+                            {% if rt.count %}{{ rt.avg }} · {{ rt.count }} voto(s){% else %}Seja o 1º a avaliar{% endif %}
+                        </span>
                     </div>
                 </div>
-            </a>
+            </div>
             {% endfor %}
         </div>
 
@@ -145,5 +168,45 @@ async function shareVitrine() {
         alert('Link copiado! Cole no WhatsApp para enviar aos amigos.');
     } catch (e) { /* usuário cancelou */ }
 }
+
+// ══════ ESTRELAS: amigos avaliam de 1 a 5 ══════
+const ATIVA = '#ffb800', INATIVA = '#3a3a3a';
+
+function pintarEstrelas(container, valor) {
+    container.querySelectorAll('.star').forEach(function (s) {
+        s.style.color = (parseInt(s.dataset.v) <= valor) ? ATIVA : INATIVA;
+    });
+}
+
+document.querySelectorAll('.star-rating').forEach(function (rating) {
+    const stars = rating.querySelectorAll('.star');
+    // Guarda a média atual para restaurar depois do hover
+    let atual = 0;
+    stars.forEach(function (s) {
+        if (s.style.color.replace(/\s/g, '') === 'rgb(255,184,0)' || s.style.color === ATIVA) atual = parseInt(s.dataset.v);
+    });
+
+    stars.forEach(function (star) {
+        star.addEventListener('mouseenter', function () { pintarEstrelas(rating, parseInt(star.dataset.v)); });
+        star.addEventListener('click', async function (ev) {
+            ev.stopPropagation();
+            const v = parseInt(star.dataset.v);
+            const carId = rating.dataset.car;
+            pintarEstrelas(rating, v);
+            const info = rating.parentElement.querySelector('.star-info');
+            if (info) info.textContent = 'Enviando...';
+            try {
+                const fd = new FormData(); fd.append('stars', v);
+                const r = await fetch('/car/' + carId + '/rate', { method: 'POST', body: fd });
+                const d = await r.json();
+                if (info && d.avg !== undefined) info.textContent = d.avg + ' · ' + d.count + ' voto(s)';
+                atual = Math.round(d.avg);
+            } catch (e) {
+                if (info) info.textContent = 'Tente de novo';
+            }
+        });
+    });
+    rating.addEventListener('mouseleave', function () { pintarEstrelas(rating, atual); });
+});
 </script>
 {% endblock %}

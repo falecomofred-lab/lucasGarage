@@ -55,6 +55,25 @@ class CarModel(Base):
     manufacturer = relationship("ManufacturerModel", back_populates="cars")
     category = relationship("CategoryModel", back_populates="cars")
 
+class RatingModel(Base):
+    """Estrela (1 a 5) dada por um amigo do Lucas a um carro."""
+    __tablename__ = "ratings"
+    id = Column(Integer, primary_key=True, index=True)
+    car_id = Column(Integer, ForeignKey("cars.id"), index=True)
+    stars = Column(Integer, nullable=False)  # 1..5
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class CommentModel(Base):
+    """Comentário de um amigo do Lucas em um carro da vitrine."""
+    __tablename__ = "comments"
+    id = Column(Integer, primary_key=True, index=True)
+    car_id = Column(Integer, ForeignKey("cars.id"), index=True)
+    author = Column(String(60), default="Anônimo")
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+
 def get_db():
     db = SessionLocal()
     try:

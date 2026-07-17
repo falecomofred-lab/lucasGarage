@@ -62,10 +62,13 @@
              class="car-card group relative flex flex-col rounded-3xl overflow-hidden bg-garage-dark border border-white/5 cursor-pointer shadow-lg shadow-black/40">
 
             <!-- ZONA DA IMAGEM (enquadramento uniforme 4:3) -->
-            <div class="photo-frame relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite via-garage-dark to-black overflow-hidden">
-                {% if car.image_urls and car.image_urls[0] %}
-                    <img src="{{ car.image_urls[0] }}" alt="{{ car.name }}" loading="lazy"
-                         class="card-photo absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105">
+            {% set imgs = (car.image_urls or []) | select | list %}
+            <div class="photo-frame js-slideshow relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite via-garage-dark to-black overflow-hidden">
+                {% if imgs %}
+                    {% for img in imgs %}
+                    <img src="{{ img }}" alt="{{ car.name }}" loading="lazy"
+                         class="slide card-photo absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 {% if loop.first %}is-active{% endif %}">
+                    {% endfor %}
                 {% else %}
                     <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
                         <p class="font-display text-5xl font-bold text-white/20">1:32</p>
@@ -84,6 +87,13 @@
                         {% if status_val == 'published' %}✓ Publicado{% else %}✎ Rascunho{% endif %}
                     </span>
                 </div>
+
+                <!-- LOGO DA MONTADORA -->
+                {% if mfr and mfr.logo_url %}
+                <div class="absolute bottom-3 left-3 z-20 w-11 h-11 rounded-full bg-white/95 shadow-lg flex items-center justify-center p-1.5">
+                    <img src="{{ mfr.logo_url }}" alt="{{ mfr.name }}" class="max-w-full max-h-full object-contain" onerror="this.parentElement.style.display='none'">
+                </div>
+                {% endif %}
 
                 <!-- BOTÃO VER (card público) -->
                 <a href="/car/{{ car.id }}" onclick="event.stopPropagation()" title="Ver card"
