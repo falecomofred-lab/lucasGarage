@@ -557,6 +557,42 @@ async def upload_photos(car_id: int, request: Request, db=Depends(get_db)):
     return RedirectResponse(url=f"/edit/{car_id}", status_code=303)
 
 
+@app.get("/super-trunfo")
+async def super_trunfo(request: Request, db=Depends(get_db)):
+    """Jogo de Super Trunfo com as miniaturas do Lucas (local, passa-e-joga)."""
+    from src.infra.repositories import SQLAlchemyManufacturerRepository
+    from src.utils.generators import battle_stats
+
+    repo = SQLAlchemyCarRepository(db)
+    mfr_repo = SQLAlchemyManufacturerRepository(db)
+    all_cars = await repo.get_all()
+    manufacturers = await mfr_repo.get_all()
+    for m in manufacturers:
+        m.logo_url = get_logo_url(m.name, m.logo_url)
+    mfr_map = {m.id: m for m in manufacturers}
+
+    def _st(c):
+        return c.status.value if hasattr(c.status, "value") else c.status
+    publicados = [c for c in all_cars if _st(c) == "published"]
+    cars = publicados if publicados else all_cars
+
+    deck = []
+    for c in cars:
+        urls = [u for u in (c.image_urls or []) if u]
+        mfr = mfr_map.get(c.manufacturer_id)
+        deck.append({
+            "id": c.id,
+            "name": c.name,
+            "mfr": mfr.name if mfr else "",
+            "logo": (mfr.logo_url if mfr else "") or "",
+            "photo": urls[0] if urls else "",
+            "stats": battle_stats(c),
+        })
+
+    template = jinja_env.get_template("pages/super_trunfo.html")
+    return HTMLResponse(template.render(request=request, deck=deck))
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "app": settings.APP_NAME}

@@ -94,3 +94,45 @@ def collector_level(total_score: int) -> str:
         if total_score >= threshold:
             level = name
     return level
+
+
+# ══════════════════ SUPER TRUNFO (atributos de batalha) ══════════════════
+
+import hashlib
+
+# Base de Velocidade/Potência por classe (0-99)
+_BATTLE_BASE = {
+    "supercar": (94, 90),
+    "racing":   (96, 88),
+    "sports":   (84, 80),
+    "muscle":   (80, 94),
+    "luxury":   (76, 82),
+    "classic":  (66, 64),
+}
+
+_RARITY_POINTS = {"S": 96, "A": 86, "B": 72, "C": 58}
+
+
+def battle_stats(car) -> dict:
+    """
+    Atributos de batalha do Super Trunfo, calculados de forma determinística
+    a partir da classe, ano e raridade do carro (não precisa cadastro extra).
+    Direção de vitória: velocidade/potência/raridade -> MAIOR vence; ano -> MAIS ANTIGO vence.
+    """
+    class_val = car.class_.value if hasattr(car.class_, "value") else str(car.class_)
+    base_vel, base_pot = _BATTLE_BASE.get(class_val, (60, 60))
+
+    seed = int(hashlib.md5((car.name or str(car.id or "")).encode()).hexdigest(), 16)
+    j1 = seed % 9 - 4          # -4..+4
+    j2 = (seed // 9) % 9 - 4
+
+    velocidade = max(40, min(99, base_vel + j1))
+    potencia = max(40, min(99, base_pot + j2))
+    raridade = _RARITY_POINTS.get(rarity_label(car), 60)
+
+    return {
+        "velocidade": velocidade,
+        "potencia": potencia,
+        "ano": car.year or 2000,
+        "raridade": raridade,
+    }
