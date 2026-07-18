@@ -143,3 +143,64 @@ def gerar_card(car, mfr_name, score, rarity, photo_path: Path | None) -> bytes:
 def _tw(draw, text, font):
     b = draw.textbbox((0, 0), text, font=font)
     return b[2] - b[0]
+
+
+def gerar_poster(itens, total, score, level) -> bytes:
+    """
+    Pôster da coleção inteira (para compartilhar).
+    itens = lista de (nome, caminho_da_foto) — usa até 9.
+    """
+    poster = Image.new("RGB", (W, H), BLACK)
+    glow = Image.new("RGB", (W, H), BLACK)
+    ImageDraw.Draw(glow).ellipse([W * 0.1, -320, W * 0.9, 380], fill=(60, 12, 6))
+    poster = Image.blend(poster, glow, 0.5)
+    draw = ImageDraw.Draw(poster)
+
+    # ── Cabeçalho ──
+    _center_text(draw, W / 2, 60, "MINHA COLEÇÃO", _font(34, bold=False), FERRARI)
+    _center_text(draw, W / 2, 110, "LUCAS GARAGE", _font(78), WHITE)
+
+    # ── Stats ──
+    sy = 235
+    def stat(cx, valor, rotulo, cor):
+        _center_text(draw, cx, sy, str(valor), _font(64), cor)
+        _center_text(draw, cx, sy + 78, rotulo, _font(26, bold=False), GRAY)
+    stat(W * 0.25, total, "MINIATURAS", WHITE)
+    stat(W * 0.5, score, "COLLECTOR SCORE", FERRARI)
+    _center_text(draw, W * 0.78, sy + 12, level[:16] if level else "", _font(30), WHITE)
+    _center_text(draw, W * 0.78, sy + 78, "NÍVEL", _font(26, bold=False), GRAY)
+
+    # ── Grade de fotos (3x3) ──
+    cols, tw, th, gap = 3, 300, 225, 24
+    left = (W - (cols * tw + (cols - 1) * gap)) // 2
+    top = 380
+    for i, (nome, path) in enumerate(itens[:9]):
+        r, c = divmod(i, cols)
+        x = left + c * (tw + gap)
+        y = top + r * (th + gap)
+        try:
+            if path and Path(path).exists():
+                thumb = _cover(Image.open(path), tw, th)
+            else:
+                thumb = Image.new("RGB", (tw, th), GRAPHITE)
+            poster.paste(thumb, (x, y))
+        except Exception:
+            draw.rectangle([x, y, x + tw, y + th], fill=GRAPHITE)
+        # borda + degradê inferior com o nome
+        draw.rectangle([x, y, x + tw - 1, y + th - 1], outline=(255, 40, 0, 120), width=2)
+        draw.rectangle([x, y + th - 46, x + tw, y + th], fill=(0, 0, 0))
+        nm = (nome or "").upper()
+        if _tw(draw, nm, _font(20)) > tw - 16:
+            while nm and _tw(draw, nm + "…", _font(20)) > tw - 16:
+                nm = nm[:-1]
+            nm += "…"
+        draw.text((x + 10, y + th - 38), nm, font=_font(20), fill=WHITE)
+
+    # ── Rodapé ──
+    fy = H - 80
+    draw.rectangle([0, fy - 16, W, H], fill=DARK)
+    _center_text(draw, W / 2, fy, "Veja a coleção completa · LUCAS GARAGE", _font(30, bold=False), GRAY)
+
+    out = BytesIO()
+    poster.save(out, format="PNG")
+    return out.getvalue()

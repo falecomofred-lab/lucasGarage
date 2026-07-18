@@ -221,12 +221,29 @@
 <script>
 async function shareVitrine() {
     const url = window.location.href;
-    const dados = { title: 'Coleção Lucas Garage', text: 'Dá uma olhada na minha coleção de miniaturas! 🏎️', url };
+    // tenta compartilhar a IMAGEM-pôster da coleção
     try {
-        if (navigator.share) { await navigator.share(dados); return; }
-        await navigator.clipboard.writeText(url);
-        alert('Link copiado! Cole no WhatsApp para enviar aos amigos.');
-    } catch (e) { /* usuário cancelou */ }
+        const resp = await fetch('/vitrine/poster.png');
+        const blob = await resp.blob();
+        const file = new File([blob], 'lucas-garage-colecao.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: 'Coleção Lucas Garage',
+                text: 'Dá uma olhada na minha coleção de miniaturas! 🏎️ ' + url });
+            return;
+        }
+        // desktop: baixa o pôster
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = u; a.download = 'lucas-garage-colecao.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(u);
+    } catch (e) {
+        try {
+            if (navigator.share) { await navigator.share({ title: 'Coleção Lucas Garage', url }); return; }
+            await navigator.clipboard.writeText(url);
+            alert('Link copiado! Cole no WhatsApp para enviar aos amigos.');
+        } catch (_) {}
+    }
 }
 
 // ══════ ESTRELAS: amigos avaliam de 1 a 5 ══════

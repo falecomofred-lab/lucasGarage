@@ -560,3 +560,58 @@ async def upload_photos(car_id: int, request: Request, db=Depends(get_db)):
 @app.get("/health")
 async def health():
     return {"status": "ok", "app": settings.APP_NAME}
+
+
+# ══════════════ PWA (instalável no celular) ══════════════
+@app.get("/manifest.webmanifest")
+async def manifest():
+    return JSONResponse(content={
+        "name": "Lucas Garage",
+        "short_name": "Lucas Garage",
+        "description": "Coleção premium de miniaturas 1:32",
+        "start_url": "/vitrine",
+        "display": "standalone",
+        "background_color": "#0a0a0a",
+        "theme_color": "#0a0a0a",
+        "icons": [
+            {"src": "/static/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+        ]
+    }, media_type="application/manifest+json")
+
+
+@app.get("/sw.js")
+async def service_worker():
+    from fastapi.responses import Response
+    js = (
+        "self.addEventListener('install', function(e){ self.skipWaiting(); });\n"
+        "self.addEventListener('activate', function(e){ self.clients.claim(); });\n"
+        "self.addEventListener('fetch', function(e){});\n"
+    )
+    return Response(content=js, media_type="application/javascript")
+
+
+@app.get("/vitrine/poster.png")
+async def vitrine_poster(db=Depends(get_db)):
+    """Gera uma imagem-pôster da coleção inteira para compartilhar."""
+    from fastapi.responses import Response
+    from src.utils.generators import calculate_score, collector_level
+    from src.services.card_image import gerar_poster
+
+    repo = SQLAlchemyCarRepository(db)
+    all_cars = await repo.get_all()
+
+    def _st(c):
+        return c.status.value if hasattr(c.status, "value") else c.status
+    publicados = [c for c in all_cars if _st(c) == "published"]
+    cars = publicados if publicados else all_cars
+    cars = sorted(cars, key=lambda c: calculate_score(c), reverse=True)
+
+    itens = []
+    for c in cars[:9]:
+        urls = [u for u in (c.image_urls or []) if u]
+        p = Path(settings.UPLOAD_DIR) / urls[0][len("/uploads/"):] if (urls and urls[0].startswith("/uploads/")) else None
+        itens.append((c.name, p))
+
+    total_score = sum(calculate_score(c) for c in all_cars)
+    png = gerar_poster(itens, len(all_cars), total_score, collector_level(total_score))
+    return Response(content=png, media_type="image/png")
