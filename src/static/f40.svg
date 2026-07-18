@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 340" fill="none">
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff3a15"/>
+      <stop offset="0.5" stop-color="#e01f00"/>
+      <stop offset="1" stop-color="#5c0d00"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a2f3a"/>
+      <stop offset="1" stop-color="#0a0c12"/>
+    </linearGradient>
+    <radialGradient id="rim" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#3a3a3a"/>
+      <stop offset="0.6" stop-color="#161616"/>
+      <stop offset="1" stop-color="#000"/>
+    </radialGradient>
+  </defs>
+
+  <!-- asa traseira (estrutura marcante da F40) -->
+  <g fill="#1a1a1a">
+    <rect x="70" y="150" width="14" height="60"/>
+    <rect x="150" y="150" width="14" height="60"/>
+  </g>
+  <rect x="40" y="128" width="150" height="20" rx="4" fill="#111"/>
+  <rect x="40" y="126" width="150" height="6" rx="3" fill="#ff2800"/>
+
+  <!-- corpo cunha da F40 (frente à direita) -->
+  <path d="M70 214
+           L70 176
+           L215 168
+           C300 150 360 140 430 132
+           L520 128
+           C610 126 690 150 760 196
+           L788 214
+           L788 236
+           L70 236 Z"
+        fill="url(#body)"/>
+
+  <!-- vidros / cabine -->
+  <path d="M448 138 L520 134 C560 134 596 146 626 168 L470 172 Z" fill="url(#glass)"/>
+  <path d="M430 140 L446 172 L360 176 Z" fill="url(#glass)"/>
+
+  <!-- friso lateral / sombra -->
+  <path d="M90 214 L760 214 L788 226 L70 226 Z" fill="#000" opacity="0.35"/>
+  <!-- vão das rodas -->
+  <path d="M215 236 a52 52 0 0 1 104 0 Z" fill="#0a0a0a"/>
+  <path d="M545 236 a52 52 0 0 1 104 0 Z" fill="#0a0a0a"/>
+
+  <!-- rodas -->
+  <g>
+    <circle cx="267" cy="236" r="52" fill="#0a0a0a"/>
+    <circle cx="267" cy="236" r="34" fill="url(#rim)"/>
+    <circle cx="267" cy="236" r="8" fill="#555"/>
+    <circle cx="597" cy="236" r="52" fill="#0a0a0a"/>
+    <circle cx="597" cy="236" r="34" fill="url(#rim)"/>
+    <circle cx="597" cy="236" r="8" fill="#555"/>
+  </g>
+
+  <!-- brilho superior -->
+  <path d="M215 168 C300 150 360 140 430 132 L520 128 C560 127 598 133 634 148 L520 150 C440 150 320 158 220 176 Z"
+        fill="#fff" opacity="0.14"/>
+</svg>
