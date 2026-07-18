@@ -169,8 +169,8 @@ async def vitrine(request: Request, db=Depends(get_db)):
     total_score = sum(score_map.values())
     level = collector_level(total_score)
 
-    # Média de estrelas e nº de comentários por carro
-    from src.infra.database import RatingModel, CommentModel
+    # Média de estrelas, nº de comentários e curtidas por carro
+    from src.infra.database import RatingModel, CommentModel, LikeModel
     from sqlalchemy import func as safunc
     rating_map = {}
     for cid, avg, cnt in db.query(RatingModel.car_id, safunc.avg(RatingModel.stars), safunc.count(RatingModel.id)).group_by(RatingModel.car_id).all():
@@ -178,6 +178,12 @@ async def vitrine(request: Request, db=Depends(get_db)):
     comment_count_map = {}
     for cid, cnt in db.query(CommentModel.car_id, safunc.count(CommentModel.id)).group_by(CommentModel.car_id).all():
         comment_count_map[cid] = int(cnt or 0)
+    like_map = {}
+    for cid, cnt in db.query(LikeModel.car_id, safunc.count(LikeModel.id)).group_by(LikeModel.car_id).all():
+        like_map[cid] = int(cnt or 0)
+
+    # nº de montadoras distintas com carros
+    n_marcas = len({c.manufacturer_id for c in cars if c.manufacturer_id})
 
     template = jinja_env.get_template("pages/vitrine.html")
     html = template.render(
@@ -188,8 +194,10 @@ async def vitrine(request: Request, db=Depends(get_db)):
         rarity_map=rarity_map,
         rating_map=rating_map,
         comment_count_map=comment_count_map,
+        like_map=like_map,
         total=len(all_cars),
         shown=len(cars),
+        n_marcas=n_marcas,
         total_score=total_score,
         level=level,
     )
@@ -317,6 +325,17 @@ async def add_comment(car_id: int, request: Request, db=Depends(get_db)):
     db.add(CommentModel(car_id=car_id, author=author, text=text))
     db.commit()
     return JSONResponse(content={"ok": True, "author": author, "text": text})
+
+
+@app.post("/car/{car_id}/like")
+async def like_car(car_id: int, db=Depends(get_db)):
+    """Amigo do Lucas curte um carro (❤️)."""
+    from src.infra.database import LikeModel
+    from sqlalchemy import func as safunc
+    db.add(LikeModel(car_id=car_id))
+    db.commit()
+    total = db.query(safunc.count(LikeModel.id)).filter(LikeModel.car_id == car_id).scalar()
+    return JSONResponse(content={"likes": int(total or 0)})
 
 
 @app.get("/edit/{car_id}")

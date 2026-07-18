@@ -74,6 +74,14 @@ class CommentModel(Base):
     created_at = Column(DateTime, server_default=func.now())
 
 
+class LikeModel(Base):
+    """Curtida (❤️) de um amigo em um carro da vitrine."""
+    __tablename__ = "likes"
+    id = Column(Integer, primary_key=True, index=True)
+    car_id = Column(Integer, ForeignKey("cars.id"), index=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+
 def get_db():
     db = SessionLocal()
     try:

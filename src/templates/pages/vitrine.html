@@ -59,6 +59,11 @@
                 </div>
                 <div class="w-px h-10 bg-white/10 hidden sm:block"></div>
                 <div>
+                    <p class="font-display text-3xl sm:text-4xl font-bold text-white">{{ n_marcas }}</p>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Marcas</p>
+                </div>
+                <div class="w-px h-10 bg-white/10 hidden sm:block"></div>
+                <div>
                     <p class="font-display text-lg sm:text-2xl font-bold text-white">{{ level }}</p>
                     <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Nível</p>
                 </div>
@@ -76,14 +81,33 @@
             </div>
         </header>
 
+        <!-- ══════ BUSCA + ORDENAR ══════ -->
+        <div class="flex flex-col sm:flex-row gap-3 mb-8">
+            <input type="text" id="busca" oninput="aplicarVitrine()" placeholder="🔎 Buscar por nome ou montadora..."
+                class="flex-1 bg-black/40 border border-white/15 rounded-xl p-3 text-white placeholder-gray-500 focus:border-garage-ferrari outline-none transition-all">
+            <select id="ordenar" onchange="aplicarVitrine()"
+                class="bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:border-garage-ferrari outline-none transition-all sm:w-56">
+                <option value="score">Ordenar: Pontuação</option>
+                <option value="rating">Mais bem avaliados</option>
+                <option value="name">Nome (A-Z)</option>
+                <option value="likes">Mais curtidos</option>
+            </select>
+        </div>
+        <p id="sem-resultados" class="hidden text-center text-gray-500 py-16">Nenhum carro encontrado.</p>
+
         <!-- ══════ GRID DA VITRINE ══════ -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div id="grid-vitrine" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {% for car in cars %}
             {% set mfr = mfr_map.get(car.manufacturer_id) %}
             {% set rar = rarity_map.get(car.id, 'C') %}
             {% set imgs = (car.image_urls or []) | select | list %}
             {% set rt = rating_map.get(car.id, {'avg': 0, 'count': 0}) %}
-            <div class="vitrine-card group flex flex-col">
+            <div class="vitrine-card group flex flex-col"
+                 data-name="{{ car.name|e }}"
+                 data-mfr="{{ (mfr.name if mfr else 'Outros')|e }}"
+                 data-score="{{ score_map.get(car.id, 0) }}"
+                 data-rating="{{ rt.avg }}"
+                 data-likes="{{ like_map.get(car.id, 0) }}">
                 <span class="corner tl"></span><span class="corner tr"></span>
                 <span class="corner bl"></span><span class="corner br"></span>
                 <span class="scanline"></span>
@@ -144,6 +168,19 @@
                             {% if rt.count %}{{ rt.avg }} · {{ rt.count }} voto(s){% else %}Seja o 1º a avaliar{% endif %}
                         </span>
                     </div>
+
+                    <!-- CURTIR + COMENTAR -->
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="curtir({{ car.id }}, this)"
+                            class="flex-1 bg-white/5 hover:bg-garage-ferrari/20 border border-white/10 text-sm font-bold px-3 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5">
+                            <span class="text-base">🤍</span>
+                            <span class="like-count text-gray-300">{{ like_map.get(car.id, 0) }}</span>
+                        </button>
+                        <button type="button" onclick="abrirComentarios({{ car.id }}, '{{ car.name|e }}')"
+                            class="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-sm font-bold px-3 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5">
+                            💬 <span>{{ comment_count_map.get(car.id, 0) }}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -157,6 +194,29 @@
         {% endif %}
     </div>
 </div>
+
+<!-- MODAL DE COMENTÁRIOS -->
+<div id="modal-coment" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
+    <div class="bg-garage-dark rounded-t-3xl md:rounded-3xl border border-white/10 w-full md:max-w-lg max-h-[85vh] flex flex-col" style="animation: slideUp .3s ease;">
+        <div class="flex justify-between items-center p-5 border-b border-white/10">
+            <h3 class="font-display font-bold text-lg" id="coment-titulo">Comentários</h3>
+            <button onclick="fecharComentarios()" class="text-gray-500 hover:text-white text-3xl leading-none">×</button>
+        </div>
+        <div id="coment-lista" class="flex-1 overflow-y-auto p-5 space-y-3">
+            <p class="text-gray-500 text-sm text-center">Carregando...</p>
+        </div>
+        <form id="coment-form" class="p-4 border-t border-white/10 space-y-2" onsubmit="return enviarComentario(event)">
+            <input type="text" id="coment-autor" maxlength="60" placeholder="Seu nome"
+                   class="w-full bg-black/40 border border-white/15 rounded-lg p-2.5 text-white placeholder-gray-600 text-sm outline-none focus:border-garage-ferrari">
+            <div class="flex gap-2">
+                <input type="text" id="coment-texto" maxlength="500" required placeholder="Escreva um comentário..."
+                       class="flex-1 bg-black/40 border border-white/15 rounded-lg p-2.5 text-white placeholder-gray-600 text-sm outline-none focus:border-garage-ferrari">
+                <button type="submit" class="bg-garage-ferrari hover:bg-red-700 text-white font-bold px-4 rounded-lg transition-all">Enviar</button>
+            </div>
+        </form>
+    </div>
+</div>
+<style>@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }</style>
 
 <script>
 async function shareVitrine() {
@@ -208,5 +268,83 @@ document.querySelectorAll('.star-rating').forEach(function (rating) {
     });
     rating.addEventListener('mouseleave', function () { pintarEstrelas(rating, atual); });
 });
+
+// ══════ BUSCA + ORDENAR ══════
+function aplicarVitrine() {
+    const q = (document.getElementById('busca').value || '').toLowerCase().trim();
+    const ord = document.getElementById('ordenar').value;
+    const grid = document.getElementById('grid-vitrine');
+    const cards = Array.prototype.slice.call(grid.querySelectorAll('.vitrine-card'));
+    let visiveis = 0;
+    cards.forEach(function (c) {
+        const hay = (c.dataset.name + ' ' + c.dataset.mfr).toLowerCase();
+        const ok = !q || hay.indexOf(q) !== -1;
+        c.style.display = ok ? '' : 'none';
+        if (ok) visiveis++;
+    });
+    document.getElementById('sem-resultados').classList.toggle('hidden', visiveis > 0);
+    cards.sort(function (a, b) {
+        if (ord === 'name') return a.dataset.name.localeCompare(b.dataset.name);
+        if (ord === 'rating') return parseFloat(b.dataset.rating) - parseFloat(a.dataset.rating);
+        if (ord === 'likes') return parseInt(b.dataset.likes) - parseInt(a.dataset.likes);
+        return parseInt(b.dataset.score) - parseInt(a.dataset.score);
+    });
+    cards.forEach(function (c) { grid.appendChild(c); });
+}
+
+// ══════ CURTIR (❤️) ══════
+async function curtir(carId, btn) {
+    try {
+        const r = await fetch('/car/' + carId + '/like', { method: 'POST' });
+        const d = await r.json();
+        btn.querySelector('.like-count').textContent = d.likes;
+        btn.querySelector('span:first-child').textContent = '❤️';
+        const card = btn.closest('.vitrine-card');
+        if (card) card.dataset.likes = d.likes;
+    } catch (e) {}
+}
+
+// ══════ COMENTÁRIOS ══════
+let comentCarId = null, comentNome = '';
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+async function abrirComentarios(carId, nome) {
+    comentCarId = carId; comentNome = nome;
+    document.getElementById('coment-titulo').textContent = '💬 ' + nome;
+    document.getElementById('modal-coment').classList.remove('hidden');
+    const lista = document.getElementById('coment-lista');
+    lista.innerHTML = '<p class="text-gray-500 text-sm text-center">Carregando...</p>';
+    try {
+        const r = await fetch('/car/' + carId + '/comments');
+        const d = await r.json();
+        if (!d.length) {
+            lista.innerHTML = '<p class="text-gray-500 text-sm text-center">Ainda sem comentários. Seja o primeiro!</p>';
+        } else {
+            lista.innerHTML = d.map(function (c) {
+                return '<div class="bg-white/5 rounded-xl p-3"><p class="text-xs text-garage-ferrari font-bold">' +
+                    esc(c.author) + '</p><p class="text-sm text-gray-200 mt-1">' + esc(c.text) + '</p></div>';
+            }).join('');
+        }
+    } catch (e) {
+        lista.innerHTML = '<p class="text-red-400 text-sm text-center">Erro ao carregar.</p>';
+    }
+}
+function fecharComentarios() { document.getElementById('modal-coment').classList.add('hidden'); }
+
+async function enviarComentario(ev) {
+    ev.preventDefault();
+    const autor = document.getElementById('coment-autor').value.trim() || 'Anônimo';
+    const texto = document.getElementById('coment-texto').value.trim();
+    if (!texto) return false;
+    const fd = new FormData(); fd.append('author', autor); fd.append('text', texto);
+    try {
+        await fetch('/car/' + comentCarId + '/comment', { method: 'POST', body: fd });
+        document.getElementById('coment-texto').value = '';
+        // atualiza contador no card
+        const card = document.querySelector('.vitrine-card [onclick*="abrirComentarios(' + comentCarId + ',"]');
+        abrirComentarios(comentCarId, comentNome);
+    } catch (e) {}
+    return false;
+}
 </script>
 {% endblock %}

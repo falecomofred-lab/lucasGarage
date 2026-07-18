@@ -56,6 +56,12 @@
         </div>
     </header>
 
+    <!-- BUSCA -->
+    <div class="max-w-7xl mx-auto mb-4">
+        <input type="text" id="busca-dash" oninput="aplicarFiltro()" placeholder="🔎 Buscar carro por nome..."
+            class="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white placeholder-gray-500 focus:border-garage-ferrari outline-none transition-all">
+    </div>
+
     <!-- FILTRO POR MONTADORA -->
     {% if filter_mfrs %}
     <div class="max-w-7xl mx-auto mb-5 flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
@@ -80,6 +86,7 @@
         <!-- CARD: TOCAR EM QUALQUER LUGAR ABRE A EDIÇÃO -->
         <div onclick="location.href='/edit/{{ car.id }}'"
              data-mfr="{{ (mfr.name if mfr else 'Outros')|e }}"
+             data-name="{{ car.name|e }}"
              class="car-card group relative flex flex-col rounded-3xl overflow-hidden bg-garage-dark border border-white/5 cursor-pointer shadow-lg shadow-black/40">
 
             <!-- ZONA DA IMAGEM (enquadramento uniforme 4:3) -->
@@ -175,17 +182,27 @@
 </style>
 
 <script>
-// Filtro por montadora (client-side, instantâneo)
-function filtrarMontadora(nome, botao) {
+// Filtro por montadora + busca (client-side, instantâneo)
+let montadoraAtual = 'all';
+
+function aplicarFiltro() {
+    const q = (document.getElementById('busca-dash').value || '').toLowerCase().trim();
     document.querySelectorAll('.car-card').forEach(function (card) {
-        card.style.display = (nome === 'all' || card.dataset.mfr === nome) ? '' : 'none';
+        const okMfr = (montadoraAtual === 'all' || card.dataset.mfr === montadoraAtual);
+        const okBusca = !q || (card.dataset.name || '').toLowerCase().indexOf(q) !== -1;
+        card.style.display = (okMfr && okBusca) ? '' : 'none';
     });
+}
+
+function filtrarMontadora(nome, botao) {
+    montadoraAtual = nome;
     document.querySelectorAll('.filtro-btn').forEach(function (b) {
         b.classList.remove('bg-garage-ferrari', 'text-white');
         b.classList.add('bg-white/10', 'text-gray-300');
     });
     botao.classList.remove('bg-white/10', 'text-gray-300');
     botao.classList.add('bg-garage-ferrari', 'text-white');
+    aplicarFiltro();
 }
 </script>
 {% endblock %}
