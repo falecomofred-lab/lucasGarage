@@ -186,6 +186,25 @@
         .slide { opacity: 0; transition: opacity .8s ease; z-index: 0; }
         .slide.is-active { opacity: 1; z-index: 1; }
 
+        /* ══════ CARTA FOIL (Classe S) — brilho holográfico ══════ */
+        .foil-s::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 6;
+            pointer-events: none;
+            background: linear-gradient(115deg, transparent 32%, rgba(255,255,255,.22) 44%, rgba(255,215,0,.38) 50%, rgba(120,220,255,.28) 56%, transparent 68%);
+            background-size: 300% 300%;
+            animation: foil 3.5s ease-in-out infinite;
+            mix-blend-mode: screen;
+            border-radius: inherit;
+        }
+        @keyframes foil {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         /* ══════ TRATAMENTO PROFISSIONAL DAS FOTOS (visual colecionador) ══════ */
         .card-photo {
             filter: contrast(1.07) saturate(1.12) brightness(1.02);
@@ -280,6 +299,7 @@
         <div class="flex items-center gap-4 sm:gap-8 text-xs sm:text-sm font-medium tracking-wide text-gray-400 shrink-0">
             <a href="/vitrine" class="nav-link whitespace-nowrap">VITRINE</a>
             <a href="/super-trunfo" class="nav-link whitespace-nowrap">SUPER TRUNFO</a>
+            <button id="som-toggle" onclick="const on=SOM.toggle(); this.textContent=on?'🔊':'🔇';" title="Ligar/desligar som" class="text-lg leading-none">🔊</button>
         </div>
     </nav>
 
@@ -337,6 +357,51 @@
             </div>
         </div>
     </footer>
+
+    <!-- SOM: efeitos sintetizados (Web Audio), sem arquivos -->
+    <script>
+    window.SOM = (function () {
+        let ctx = null;
+        function ac() { if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return ctx; }
+        function off() { return localStorage.getItem('som_off') === '1'; }
+        function tone(freq, t0, dur, type, vol) {
+            const c = ac(); if (!c) return;
+            const o = c.createOscillator(), g = c.createGain();
+            o.type = type || 'sine'; o.frequency.value = freq;
+            const t = c.currentTime + t0;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(vol || 0.2, t + 0.015);
+            g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+            o.connect(g).connect(c.destination);
+            o.start(t); o.stop(t + dur + 0.03);
+        }
+        return {
+            toggle() { localStorage.setItem('som_off', off() ? '0' : '1'); return !off(); },
+            isOn() { return !off(); },
+            motor() {
+                if (off()) return; const c = ac(); if (!c) return;
+                const o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+                o.type = 'sawtooth'; f.type = 'lowpass'; f.frequency.value = 950;
+                const t = c.currentTime;
+                o.frequency.setValueAtTime(70, t);
+                o.frequency.exponentialRampToValueAtTime(230, t + 0.22);
+                o.frequency.exponentialRampToValueAtTime(120, t + 0.5);
+                g.gain.setValueAtTime(0.0001, t);
+                g.gain.linearRampToValueAtTime(0.28, t + 0.05);
+                g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+                o.connect(f).connect(g).connect(c.destination);
+                o.start(t); o.stop(t + 0.6);
+            },
+            clique() { if (off()) return; tone(620, 0, 0.07, 'square', 0.1); },
+            vitoria() { if (off()) return;[523, 659, 784, 1047].forEach((fq, i) => tone(fq, i * 0.12, 0.35, 'triangle', 0.22)); },
+            derrota() { if (off()) return;[392, 330, 262, 175].forEach((fq, i) => tone(fq, i * 0.16, 0.42, 'sawtooth', 0.17)); },
+            empate() { if (off()) return; tone(440, 0, 0.22, 'sine', 0.18); tone(440, 0.24, 0.28, 'sine', 0.16); },
+            marcha() { if (off()) return; tone(300, 0, 0.05, 'square', 0.12); tone(170, 0.05, 0.09, 'sawtooth', 0.12); },
+            curtir() { if (off()) return; tone(880, 0, 0.09, 'sine', 0.16); tone(1320, 0.08, 0.12, 'sine', 0.14); },
+        };
+    })();
+    (function () { const b = document.getElementById('som-toggle'); if (b) b.textContent = SOM.isOn() ? '🔊' : '🔇'; })();
+    </script>
 
     <!-- SLIDESHOW: troca as fotos de cada card a cada 5 segundos, em loop -->
     <script>

@@ -75,11 +75,36 @@
                     class="bg-garage-ferrari hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-garage-ferrari/30">
                     🔗 Compartilhar coleção
                 </button>
-                <a href="/" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-xl transition-all">
-                    Voltar
+                <a href="/quiz" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-xl transition-all">
+                    🎯 Quiz
+                </a>
+                <a href="/super-trunfo" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-xl transition-all">
+                    🃏 Super Trunfo
                 </a>
             </div>
         </header>
+
+        <!-- ══════ CARTA DO DIA ══════ -->
+        {% if destaque %}
+        {% set dmfr = mfr_map.get(destaque.manufacturer_id) %}
+        <a href="/car/{{ destaque.id }}" class="block mb-6 rounded-3xl overflow-hidden border border-garage-ferrari/40 bg-gradient-to-r from-garage-ferrari/15 via-garage-ferrari/5 to-transparent hover:border-garage-ferrari transition-all">
+            <div class="flex items-center gap-4 p-4">
+                <div class="photo-frame relative w-28 h-24 sm:w-44 sm:h-28 rounded-2xl overflow-hidden shrink-0 bg-garage-graphite">
+                    {% if destaque.image_urls and destaque.image_urls[0] %}
+                        <img src="{{ destaque.image_urls[0] }}" class="card-photo w-full h-full object-cover">
+                    {% else %}
+                        <div class="flex items-center justify-center h-full font-display text-white/20">1:32</div>
+                    {% endif %}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-garage-ferrari text-[10px] font-bold uppercase tracking-[0.25em] mb-1">⭐ Carta do dia</p>
+                    <h3 class="font-display text-xl sm:text-2xl font-bold line-clamp-1">{{ destaque.name }}</h3>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider">{{ dmfr.name if dmfr else '—' }} · {{ destaque.year or '—' }}</p>
+                    <p class="text-sm text-garage-ferrari font-display font-bold mt-1">⚡ {{ score_map.get(destaque.id, 0) }} pts · Classe {{ rarity_map.get(destaque.id, 'C') }}</p>
+                </div>
+            </div>
+        </a>
+        {% endif %}
 
         <!-- ══════ BUSCA + ORDENAR ══════ -->
         <div class="flex flex-col sm:flex-row gap-3 mb-8">
@@ -102,7 +127,7 @@
             {% set rar = rarity_map.get(car.id, 'C') %}
             {% set imgs = (car.image_urls or []) | select | list %}
             {% set rt = rating_map.get(car.id, {'avg': 0, 'count': 0}) %}
-            <div class="vitrine-card group flex flex-col"
+            <div class="vitrine-card group flex flex-col {% if rar == 'S' %}foil-s{% endif %}"
                  data-name="{{ car.name|e }}"
                  data-mfr="{{ (mfr.name if mfr else 'Outros')|e }}"
                  data-score="{{ score_map.get(car.id, 0) }}"
@@ -311,6 +336,7 @@ function aplicarVitrine() {
 
 // ══════ CURTIR (❤️) ══════
 async function curtir(carId, btn) {
+    if (window.SOM) SOM.curtir();
     try {
         const r = await fetch('/car/' + carId + '/like', { method: 'POST' });
         const d = await r.json();

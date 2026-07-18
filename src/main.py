@@ -125,6 +125,25 @@ async def dashboard(request: Request, db=Depends(get_db)):
         for c in cars
     })
 
+    # Conquistas (medalhas) calculadas da coleção
+    def _cls(c):
+        return c.class_.value if hasattr(c.class_, "value") else c.class_
+    n_supercar = sum(1 for c in cars if _cls(c) == "supercar")
+    n_classic = sum(1 for c in cars if _cls(c) == "classic")
+    com_foto = sum(1 for c in cars if c.image_urls and any(c.image_urls))
+    n_marcas = len({c.manufacturer_id for c in cars if c.manufacturer_id})
+    conquistas = [
+        {"icon": "🏁", "title": "Primeira miniatura", "ok": total >= 1},
+        {"icon": "🚗", "title": "25 na coleção", "ok": total >= 25},
+        {"icon": "🏢", "title": "50 na coleção", "ok": total >= 50},
+        {"icon": "💎", "title": "Primeiro supercar", "ok": n_supercar >= 1},
+        {"icon": "🕰️", "title": "10 clássicos", "ok": n_classic >= 10},
+        {"icon": "📸", "title": "Todos com foto", "ok": total > 0 and com_foto == total},
+        {"icon": "🌐", "title": "10 montadoras", "ok": n_marcas >= 10},
+        {"icon": "✅", "title": "10 publicados", "ok": published >= 10},
+        {"icon": "👑", "title": "Score 3000+", "ok": total_score >= 3000},
+    ]
+
     template = jinja_env.get_template("dashboard.html")
     html = template.render(
         request=request,
@@ -137,7 +156,8 @@ async def dashboard(request: Request, db=Depends(get_db)):
         rarity_map=rarity_map,
         total_score=total_score,
         level=level,
-        filter_mfrs=filter_mfrs
+        filter_mfrs=filter_mfrs,
+        conquistas=conquistas
     )
     return HTMLResponse(content=html)
 
@@ -185,6 +205,13 @@ async def vitrine(request: Request, db=Depends(get_db)):
     # nº de montadoras distintas com carros
     n_marcas = len({c.manufacturer_id for c in cars if c.manufacturer_id})
 
+    # Carta do dia (destaque rotativo, estável durante o dia)
+    import datetime as _dt
+    destaque = None
+    if cars:
+        ordenados = sorted(cars, key=lambda c: c.id or 0)
+        destaque = ordenados[_dt.date.today().toordinal() % len(ordenados)]
+
     template = jinja_env.get_template("pages/vitrine.html")
     html = template.render(
         request=request,
@@ -200,8 +227,75 @@ async def vitrine(request: Request, db=Depends(get_db)):
         n_marcas=n_marcas,
         total_score=total_score,
         level=level,
+        destaque=destaque,
     )
     return HTMLResponse(content=html)
+
+
+@app.get("/estatisticas")
+async def estatisticas(request: Request, db=Depends(get_db)):
+    guard = _needs_login(request)
+    if guard:
+        return guard
+    from src.infra.repositories import SQLAlchemyManufacturerRepository
+    from collections import Counter
+
+    repo = SQLAlchemyCarRepository(db)
+    mfr_repo = SQLAlchemyManufacturerRepository(db)
+    cars = await repo.get_all()
+    manufacturers = await mfr_repo.get_all()
+    mfr_map = {m.id: m for m in manufacturers}
+
+    def _cls(c):
+        return c.class_.value if hasattr(c.class_, "value") else c.class_
+
+    por_mfr = Counter((mfr_map[c.manufacturer_id].name if c.manufacturer_id in mfr_map else "Outros") for c in cars)
+    por_classe = Counter(_cls(c) for c in cars)
+    por_decada = Counter((c.year // 10 * 10) for c in cars if c.year)
+
+    montadoras = sorted(por_mfr.items(), key=lambda x: x[1], reverse=True)
+    classes = sorted(por_classe.items(), key=lambda x: x[1], reverse=True)
+    decadas = sorted(por_decada.items())
+
+    max_mfr = montadoras[0][1] if montadoras else 1
+    max_classe = classes[0][1] if classes else 1
+    max_dec = max((v for _, v in decadas), default=1)
+
+    template = jinja_env.get_template("pages/estatisticas.html")
+    return HTMLResponse(template.render(
+        request=request, total=len(cars),
+        montadoras=montadoras, classes=classes, decadas=decadas,
+        max_mfr=max_mfr, max_classe=max_classe, max_dec=max_dec,
+    ))
+
+
+@app.get("/catalogo")
+async def catalogo(request: Request, db=Depends(get_db)):
+    guard = _needs_login(request)
+    if guard:
+        return guard
+    from src.infra.repositories import SQLAlchemyManufacturerRepository
+    from src.utils.generators import calculate_score, rarity_label, collector_level
+
+    repo = SQLAlchemyCarRepository(db)
+    mfr_repo = SQLAlchemyManufacturerRepository(db)
+    cars = await repo.get_all()
+    manufacturers = await mfr_repo.get_all()
+    mfr_map = {m.id: m for m in manufacturers}
+
+    score_map = {c.id: calculate_score(c) for c in cars}
+    rarity_map = {c.id: rarity_label(c) for c in cars}
+    total_score = sum(score_map.values())
+
+    base_url = str(request.base_url).rstrip("/")
+    template = jinja_env.get_template("pages/catalogo.html")
+    return HTMLResponse(template.render(
+        request=request,
+        cars=sorted(cars, key=lambda c: score_map.get(c.id, 0), reverse=True),
+        mfr_map=mfr_map, score_map=score_map, rarity_map=rarity_map,
+        total=len(cars), total_score=total_score, level=collector_level(total_score),
+        base_url=base_url,
+    ))
 
 
 @app.get("/car/{car_id}")
@@ -836,6 +930,20 @@ async def jogo_online(code: str, request: Request, db=Depends(get_db)):
         return RedirectResponse(url="/super-trunfo", status_code=303)
     template = jinja_env.get_template("pages/jogo_online.html")
     return HTMLResponse(template.render(request=request, code=code))
+
+
+@app.get("/quiz")
+async def quiz_page(request: Request, db=Depends(get_db)):
+    """Quiz: adivinhe o carro pela foto (público)."""
+    repo = SQLAlchemyCarRepository(db)
+    cars = await repo.get_all()
+    itens = []
+    for c in cars:
+        urls = [u for u in (c.image_urls or []) if u]
+        if urls and c.name:
+            itens.append({"name": c.name, "photo": urls[0]})
+    template = jinja_env.get_template("pages/quiz.html")
+    return HTMLResponse(template.render(request=request, itens=itens))
 
 
 @app.get("/health")

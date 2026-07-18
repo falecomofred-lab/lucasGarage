@@ -22,6 +22,10 @@
                     <span class="relative z-10 flex items-center justify-center gap-2">🏎️ Novo Carro</span>
                     <div class="absolute inset-0 bg-white/20 transform translate-x-full group-hover:translate-x-0 transition-transform duration-300"></div>
                 </a>
+                <a href="/estatisticas" title="Estatísticas"
+                   class="bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm text-center">📊</a>
+                <a href="/catalogo" title="Catálogo PDF"
+                   class="bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm text-center">🖨️</a>
                 <a href="/logout" title="Sair"
                    class="bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-sm text-center">
                     ⏻ Sair
@@ -54,6 +58,23 @@
             <p class="text-xs text-gray-400">Status do Colecionador</p>
             <p class="text-sm font-display font-bold text-white mt-1">{{ level }}</p>
         </div>
+
+        <!-- CONQUISTAS -->
+        {% if conquistas %}
+        <div class="mt-3">
+            <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">🏅 Conquistas</p>
+            <div class="flex gap-2 overflow-x-auto pb-1">
+                {% for cq in conquistas %}
+                <div title="{{ cq.title }}"
+                     class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border
+                        {% if cq.ok %}bg-garage-ferrari/15 border-garage-ferrari/40 text-white{% else %}bg-white/5 border-white/10 text-gray-600{% endif %}">
+                    <span class="{% if not cq.ok %}opacity-40{% endif %}">{{ cq.icon }}</span>
+                    <span class="whitespace-nowrap">{{ cq.title }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </header>
 
     <!-- BUSCA -->
@@ -82,12 +103,13 @@
     <div id="cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-7xl mx-auto">
         {% for car in cars %}
         {% set mfr = mfr_map.get(car.manufacturer_id) %}
+        {% set rar = rarity_map.get(car.id, 'C') %}
 
         <!-- CARD: TOCAR EM QUALQUER LUGAR ABRE A EDIÇÃO -->
         <div onclick="location.href='/edit/{{ car.id }}'"
              data-mfr="{{ (mfr.name if mfr else 'Outros')|e }}"
              data-name="{{ car.name|e }}"
-             class="car-card group relative flex flex-col rounded-3xl overflow-hidden bg-garage-dark border border-white/5 cursor-pointer shadow-lg shadow-black/40">
+             class="car-card group relative flex flex-col rounded-3xl overflow-hidden bg-garage-dark border border-white/5 cursor-pointer shadow-lg shadow-black/40 {% if rar == 'S' %}foil-s{% endif %}">
 
             <!-- ZONA DA IMAGEM (enquadramento uniforme 4:3) -->
             {% set imgs = (car.image_urls or []) | select | list %}
@@ -195,6 +217,7 @@ function aplicarFiltro() {
 }
 
 function filtrarMontadora(nome, botao) {
+    if (window.SOM) SOM.marcha();
     montadoraAtual = nome;
     document.querySelectorAll('.filtro-btn').forEach(function (b) {
         b.classList.remove('bg-garage-ferrari', 'text-white');

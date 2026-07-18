@@ -68,6 +68,7 @@ function placarHTML(s) {
 
 async function escolher(attr) {
     if (ocupado) return; ocupado = true;
+    if (window.SOM) SOM.motor();
     const fd = new FormData(); fd.append('token', meuToken); fd.append('attr', attr);
     try { await fetch('/game/' + CODE + '/choose', { method: 'POST', body: fd }); } catch (e) {}
     ocupado = false; ultimaAssinatura = ''; atualizar();
@@ -113,6 +114,7 @@ function render(s) {
     }
     if (s.phase === 'over') {
         const venceu = (s.winner === s.you);
+        if (window.SOM) { (s.winner < 0) ? SOM.empate() : (venceu ? SOM.vitoria() : SOM.derrota()); }
         area.innerHTML = placarHTML(s) + '<div class="glass-card rounded-3xl p-8 text-center">' +
             '<p class="text-6xl mb-4">' + (venceu ? '🏆' : '🏁') + '</p>' +
             '<p class="font-display text-2xl font-bold mb-2">' + (venceu ? 'Você venceu!' : esc(s.winnerName) + ' venceu!') + '</p>' +

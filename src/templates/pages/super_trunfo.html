@@ -23,6 +23,9 @@
                 <button onclick="criarSalaOnline(this)" class="w-full max-w-xs bg-white/10 hover:bg-white/20 border border-garage-ferrari/40 text-white font-bold px-8 py-4 rounded-2xl transition-all text-lg">
                     🌐 Jogar online (mandar link)
                 </button>
+                <a href="/quiz" class="w-full max-w-xs bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white font-bold px-8 py-3 rounded-2xl transition-all text-center">
+                    🎯 Modo Quiz (adivinhe o carro)
+                </a>
             </div>
             <p id="deck-info" class="text-xs text-gray-600 mt-4"></p>
         </div>
@@ -120,6 +123,7 @@ function iniciar() {
     document.getElementById('tela-inicio').classList.add('hidden');
     document.getElementById('tela-fim').classList.add('hidden');
     document.getElementById('tela-jogo').classList.remove('hidden');
+    if (window.SOM) SOM.motor();
     render();
 }
 
@@ -164,6 +168,7 @@ function render() {
 }
 
 function escolher(attrKey) {
+    if (window.SOM) SOM.motor();
     const attr = ATTRS.find(function (a) { return a.key === attrKey; });
     const a = p1[0], b = p2[0];
     const va = a.stats[attrKey], vb = b.stats[attrKey];
@@ -222,6 +227,7 @@ function fim() {
     if (p1.length > p2.length) msg = '🥇 Jogador 1 venceu!';
     else if (p2.length > p1.length) msg = '🥇 Jogador 2 venceu!';
     else msg = '🤝 Empate!';
+    if (window.SOM) { (p1.length === p2.length) ? SOM.empate() : SOM.vitoria(); }
     document.getElementById('vencedor').textContent = msg;
     document.getElementById('placar-final').textContent = 'Jogador 1: ' + p1.length + ' cartas · Jogador 2: ' + p2.length + ' cartas';
 }

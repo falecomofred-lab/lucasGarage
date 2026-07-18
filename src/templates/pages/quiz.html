@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz · Lucas Garage{% endblock %}
+
+{% block content %}
+<div class="w-full px-4 py-8 sm:px-6">
+    <div class="max-w-md mx-auto">
+        <header class="text-center mb-6">
+            <p class="text-garage-ferrari text-[11px] font-bold tracking-[0.35em] uppercase mb-2">Adivinhe o carro</p>
+            <h1 class="font-display text-3xl font-bold">QUIZ <span class="text-garage-ferrari">DA GARAGEM</span></h1>
+        </header>
+
+        <div class="flex items-center justify-between mb-4 text-center">
+            <div class="flex-1"><p class="text-[10px] text-gray-500 uppercase tracking-widest">Pontos</p><p id="pontos" class="font-display text-2xl font-bold">0</p></div>
+            <div class="flex-1"><p class="text-[10px] text-gray-500 uppercase tracking-widest">Sequência</p><p id="seq" class="font-display text-2xl font-bold text-garage-ferrari">0</p></div>
+            <div class="flex-1"><p class="text-[10px] text-gray-500 uppercase tracking-widest">Recorde</p><p id="recorde" class="font-display text-2xl font-bold">0</p></div>
+        </div>
+
+        <div id="quiz-area"></div>
+    </div>
+</div>
+
+<script>
+const ITENS = {{ itens|tojson }};
+let pontos = 0, seq = 0, recorde = parseInt(localStorage.getItem('quiz_recorde') || '0');
+let respondendo = false;
+document.getElementById('recorde').textContent = recorde;
+
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+function esc(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+function proxima() {
+    respondendo = false;
+    const area = document.getElementById('quiz-area');
+    if (ITENS.length < 4) {
+        area.innerHTML = '<div class="glass-card rounded-3xl p-8 text-center"><p class="text-gray-400">Cadastre pelo menos 4 carros com foto para jogar o quiz.</p></div>';
+        return;
+    }
+    const certo = ITENS[Math.floor(Math.random() * ITENS.length)];
+    // 3 distratores com nomes diferentes
+    const nomes = new Set([certo.name]);
+    const outros = shuffle(ITENS);
+    for (const it of outros) { if (nomes.size >= 4) break; nomes.add(it.name); }
+    const opcoes = shuffle([...nomes]);
+
+    area.innerHTML =
+        '<div class="rounded-3xl overflow-hidden border border-white/10 mb-4 aspect-[4/3] bg-garage-graphite">' +
+        '<img src="' + certo.photo + '" class="w-full h-full object-cover card-photo"></div>' +
+        '<p class="text-center text-gray-400 text-sm mb-3">Que carro é esse?</p>' +
+        '<div id="opcoes" class="space-y-2">' +
+        opcoes.map(function (nm) {
+            return '<button class="opt w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 font-bold transition-all" data-nome="' + esc(nm) + '">' + esc(nm) + '</button>';
+        }).join('') + '</div>';
+
+    document.querySelectorAll('.opt').forEach(function (b) {
+        b.addEventListener('click', function () { responder(b, b.dataset.nome === certo.name, certo.name); });
+    });
+}
+
+function responder(btn, acertou, nomeCerto) {
+    if (respondendo) return; respondendo = true;
+    document.querySelectorAll('.opt').forEach(function (b) {
+        b.disabled = true;
+        if (b.dataset.nome === nomeCerto) b.className = b.className.replace(/bg-white\/5|hover:bg-white\/10/g, '') + ' bg-green-600/40 border-green-500';
+        else if (b === btn) b.className = b.className.replace(/bg-white\/5|hover:bg-white\/10/g, '') + ' bg-red-600/40 border-red-500';
+    });
+    if (acertou) {
+        pontos += 10; seq += 1;
+        if (window.SOM) SOM.vitoria();
+        if (seq > recorde) { recorde = seq; localStorage.setItem('quiz_recorde', recorde); document.getElementById('recorde').textContent = recorde; }
+    } else {
+        seq = 0;
+        if (window.SOM) SOM.derrota();
+    }
+    document.getElementById('pontos').textContent = pontos;
+    document.getElementById('seq').textContent = seq;
+
+    const area = document.getElementById('quiz-area');
+    const btnProx = document.createElement('button');
+    btnProx.className = 'w-full mt-4 bg-garage-ferrari hover:bg-red-700 text-white font-bold py-3 rounded-2xl transition-all';
+    btnProx.textContent = 'Próxima →';
+    btnProx.onclick = proxima;
+    area.appendChild(btnProx);
+}
+
+proxima();
+</script>
+{% endblock %}
