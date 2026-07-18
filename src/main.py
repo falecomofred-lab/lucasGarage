@@ -33,7 +33,15 @@ from src.infra.database import Base, engine, ensure_columns
 Base.metadata.create_all(bind=engine)
 ensure_columns()  # adiciona colunas novas em bancos já existentes
 
-app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+# Garante que as pastas existam ANTES de montar (evita crash no servidor)
+_static_dir = Path(__file__).parent / "static"
+_static_dir.mkdir(parents=True, exist_ok=True)
+try:
+    Path(settings.UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
+
+app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 # Cria ambiente Jinja2 com cache DESABILITADO

@@ -280,9 +280,148 @@
         .rarity-a { border-color: rgba(255, 40, 0, 0.3) !important; }
         .rarity-b { border-color: rgba(100, 150, 255, 0.3) !important; }
         .rarity-c { border-color: rgba(150, 150, 150, 0.3) !important; }
+
+        /* ═══════════════════════════════════════════════════════
+           EFEITO DE GARAGEM — porta/portão que abre na entrada
+           ═══════════════════════════════════════════════════════ */
+        #garage-door {
+            position: fixed; inset: 0; z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: none;
+        }
+        #garage-door .shutter {
+            position: absolute; inset: 0;
+            background:
+                repeating-linear-gradient(180deg,
+                    #1c1c1c 0px, #1c1c1c 26px,
+                    #0e0e0e 26px, #0e0e0e 30px,
+                    #242424 30px, #242424 54px,
+                    #080808 54px, #080808 58px);
+            box-shadow: inset 0 -40px 60px rgba(0,0,0,.7);
+            transform: translateY(0);
+            transition: transform 1.1s cubic-bezier(.7,0,.3,1);
+        }
+        #garage-door .beam {
+            position: absolute; left: 0; right: 0; top: 0; height: 22px;
+            background: linear-gradient(180deg, rgba(255,40,0,.55), transparent);
+            opacity: 0; transition: opacity .4s ease;
+        }
+        #garage-door .badge {
+            position: relative; z-index: 2; text-align: center;
+            transition: opacity .5s ease, transform .5s ease;
+        }
+        #garage-door .badge .ring {
+            width: 92px; height: 92px; margin: 0 auto 14px;
+            border-radius: 50%; background: #ff2800;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Orbitron', sans-serif; font-weight: 700;
+            font-size: 44px; color: #fff;
+            box-shadow: 0 0 40px rgba(255,40,0,.7);
+            animation: glow-pulse 1.4s ease-in-out infinite;
+        }
+        #garage-door .badge .txt {
+            font-family: 'Orbitron', sans-serif; letter-spacing: .35em;
+            font-size: 15px; color: #eee;
+        }
+        #garage-door .badge .sub { font-size: 10px; color: #ff2800; letter-spacing: .3em; margin-top: 6px; }
+        /* estado aberto */
+        #garage-door.open .shutter { transform: translateY(-105%); }
+        #garage-door.open .beam { opacity: 1; }
+        #garage-door.open .badge { opacity: 0; transform: scale(1.15); }
+        #garage-door.done { display: none; }
+
+        /* ═══════ SPOTLIGHT que segue o mouse (só desktop) ═══════ */
+        #spotlight {
+            position: fixed; inset: 0; z-index: 1; pointer-events: none;
+            background: radial-gradient(240px circle at var(--mx,-999px) var(--my,-999px),
+                rgba(255,40,0,.10), transparent 65%);
+            opacity: 0; transition: opacity .4s ease;
+        }
+
+        /* ═══════ GRADE DE PISO DE GARAGEM (perspectiva, rodapé) ═══════ */
+        #floor-grid {
+            position: fixed; left: 0; right: 0; bottom: 0; height: 34vh;
+            z-index: 0; pointer-events: none; opacity: .5;
+            background-image:
+                linear-gradient(rgba(255,40,0,.10) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,40,0,.10) 1px, transparent 1px);
+            background-size: 46px 46px;
+            transform: perspective(340px) rotateX(62deg);
+            transform-origin: bottom center;
+            -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 92%);
+            mask-image: linear-gradient(to top, #000 0%, transparent 92%);
+        }
+
+        /* Tilt 3D dos cards no desktop */
+        .car-card.tilt { transition: transform .12s ease, box-shadow .35s ease, border-color .35s ease; }
+
+        /* Ripple de toque (mobile) */
+        .lg-ripple {
+            position: absolute; border-radius: 50%; transform: scale(0);
+            background: rgba(255,40,0,.35); pointer-events: none;
+            animation: lg-ripple .6s ease-out forwards; z-index: 40;
+        }
+        @keyframes lg-ripple { to { transform: scale(2.4); opacity: 0; } }
+
+        /* Overlay de atalhos de teclado */
+        #kbd-help {
+            position: fixed; inset: 0; z-index: 10000; display: none;
+            align-items: center; justify-content: center;
+            background: rgba(0,0,0,.82); backdrop-filter: blur(6px);
+        }
+        #kbd-help.show { display: flex; animation: fadeInUp .25s ease; }
+        #kbd-help .box {
+            background: #141414; border: 1px solid rgba(255,40,0,.3);
+            border-radius: 16px; padding: 28px 32px; max-width: 420px; width: 90%;
+            box-shadow: 0 0 60px rgba(255,40,0,.2);
+        }
+        #kbd-help kbd {
+            display: inline-block; min-width: 26px; text-align: center;
+            background: #262626; border: 1px solid #3a3a3a; border-bottom-width: 3px;
+            border-radius: 6px; padding: 3px 8px; font-family: 'Orbitron', monospace;
+            font-size: 12px; color: #ff5a3c;
+        }
+
+        /* No mobile: desliga efeitos pesados de desktop */
+        @media (hover: none), (pointer: coarse) {
+            #spotlight, #floor-grid { display: none !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #garage-door .shutter { transition: none; }
+            .lg-ripple { display: none; }
+        }
     </style>
 </head>
 <body class="min-h-screen font-sans flex flex-col">
+    <!-- EFEITOS DE GARAGEM -->
+    <div id="floor-grid"></div>
+    <div id="spotlight"></div>
+    <div id="garage-door">
+        <div class="shutter"></div>
+        <div class="beam"></div>
+        <div class="badge">
+            <div class="ring">L</div>
+            <div class="txt">LUCAS&nbsp;<span style="color:#ff2800">GARAGE</span></div>
+            <div class="sub">ABRINDO A GARAGEM</div>
+        </div>
+    </div>
+
+    <!-- AJUDA DE ATALHOS (tecla ?) -->
+    <div id="kbd-help" onclick="if(event.target===this)this.classList.remove('show')">
+        <div class="box">
+            <h3 class="font-display text-garage-ferrari text-lg mb-4 tracking-widest">ATALHOS</h3>
+            <ul class="space-y-3 text-sm text-gray-300">
+                <li><kbd>V</kbd> &nbsp; Vitrine</li>
+                <li><kbd>T</kbd> &nbsp; Super Trunfo</li>
+                <li><kbd>H</kbd> &nbsp; Início (dashboard)</li>
+                <li><kbd>G</kbd> &nbsp; Reabrir a garagem</li>
+                <li><kbd>M</kbd> &nbsp; Ligar/desligar som</li>
+                <li><kbd>/</kbd> &nbsp; Buscar (foca na busca)</li>
+                <li><kbd>?</kbd> &nbsp; Esta ajuda &nbsp;·&nbsp; <kbd>Esc</kbd> fecha</li>
+            </ul>
+        </div>
+    </div>
+
     <!-- NAVBAR -->
     <nav class="sticky top-0 z-50 glass-card px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-3 border-b border-white/10">
         <!-- Logo Lucas Garage -->
@@ -398,6 +537,25 @@
             empate() { if (off()) return; tone(440, 0, 0.22, 'sine', 0.18); tone(440, 0.24, 0.28, 'sine', 0.16); },
             marcha() { if (off()) return; tone(300, 0, 0.05, 'square', 0.12); tone(170, 0.05, 0.09, 'sawtooth', 0.12); },
             curtir() { if (off()) return; tone(880, 0, 0.09, 'sine', 0.16); tone(1320, 0.08, 0.12, 'sine', 0.14); },
+            intro() {
+                // Som de abertura estilo videogame (power-up + acorde triunfal + brilho)
+                if (off()) return; const c = ac(); if (!c) return;
+                const t0 = c.currentTime;
+                // 1) sweep de power-up (grave -> agudo)
+                const o = c.createOscillator(), g = c.createGain();
+                o.type = 'sawtooth';
+                o.frequency.setValueAtTime(160, t0);
+                o.frequency.exponentialRampToValueAtTime(920, t0 + 0.34);
+                g.gain.setValueAtTime(0.0001, t0);
+                g.gain.linearRampToValueAtTime(0.16, t0 + 0.04);
+                g.gain.exponentialRampToValueAtTime(0.0008, t0 + 0.4);
+                o.connect(g).connect(c.destination); o.start(t0); o.stop(t0 + 0.42);
+                // 2) acorde triunfal (dó maior subindo) — "game start"
+                [523.25, 659.25, 783.99, 1046.5].forEach((fq, i) => tone(fq, 0.34 + i * 0.05, 0.55, 'triangle', 0.2));
+                // 3) faísca/brilho agudo no fim
+                tone(1568, 0.56, 0.5, 'sine', 0.12);
+                tone(2093, 0.62, 0.4, 'sine', 0.08);
+            },
         };
     })();
     (function () { const b = document.getElementById('som-toggle'); if (b) b.textContent = SOM.isOn() ? '🔊' : '🔇'; })();
@@ -417,6 +575,107 @@
             });
         }
         setInterval(tick, 5000);
+    })();
+    </script>
+
+    <!-- ══════ EFEITOS DE GARAGEM + ATALHOS DE TECLADO ══════ -->
+    <script>
+    (function () {
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+        /* ---------- Porta de garagem (abre na entrada) ---------- */
+        function abrirGaragem(force) {
+            var d = document.getElementById('garage-door');
+            if (!d) return;
+            d.classList.remove('done');
+            d.querySelector('.shutter').style.transform = 'translateY(0)';
+            d.classList.remove('open');
+            // força reflow p/ reiniciar animação
+            void d.offsetWidth;
+            setTimeout(function () {
+                d.classList.add('open');
+                try { SOM.intro(); } catch (e) {}
+                setTimeout(function () { d.classList.add('done'); }, 1300);
+            }, force ? 250 : 650);
+        }
+        // só toca uma vez por sessão (reabra com a tecla G)
+        if (reduce) {
+            var dd = document.getElementById('garage-door'); if (dd) dd.classList.add('done');
+        } else if (!sessionStorage.getItem('garagem_aberta')) {
+            sessionStorage.setItem('garagem_aberta', '1');
+            abrirGaragem(false);
+        } else {
+            var d0 = document.getElementById('garage-door'); if (d0) d0.classList.add('done');
+        }
+
+        /* ---------- Spotlight + tilt dos cards (desktop) ---------- */
+        if (fine && !reduce) {
+            var sp = document.getElementById('spotlight');
+            if (sp) sp.style.opacity = '1';
+            window.addEventListener('pointermove', function (e) {
+                if (sp) { sp.style.setProperty('--mx', e.clientX + 'px'); sp.style.setProperty('--my', e.clientY + 'px'); }
+            }, { passive: true });
+
+            document.querySelectorAll('.car-card').forEach(function (card) {
+                card.classList.add('tilt');
+                card.addEventListener('pointermove', function (e) {
+                    var r = card.getBoundingClientRect();
+                    var px = (e.clientX - r.left) / r.width - 0.5;
+                    var py = (e.clientY - r.top) / r.height - 0.5;
+                    card.style.transform = 'translateY(-8px) scale(1.03) rotateX(' + (-py * 7).toFixed(2) + 'deg) rotateY(' + (px * 9).toFixed(2) + 'deg)';
+                });
+                card.addEventListener('pointerleave', function () { card.style.transform = ''; });
+            });
+        }
+
+        /* ---------- Ripple + vibração no toque (mobile) ---------- */
+        if (!reduce) {
+            document.addEventListener('pointerdown', function (e) {
+                var el = e.target.closest('.car-card, button');
+                if (!el) return;
+                if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+                if (getComputedStyle(el).overflow === 'visible') el.style.overflow = 'hidden';
+                var r = el.getBoundingClientRect();
+                var s = Math.max(r.width, r.height);
+                var rp = document.createElement('span');
+                rp.className = 'lg-ripple';
+                rp.style.width = rp.style.height = s + 'px';
+                rp.style.left = (e.clientX - r.left - s / 2) + 'px';
+                rp.style.top = (e.clientY - r.top - s / 2) + 'px';
+                el.appendChild(rp);
+                setTimeout(function () { rp.remove(); }, 600);
+                if (navigator.vibrate && e.pointerType === 'touch') navigator.vibrate(8);
+            }, { passive: true });
+        }
+
+        /* ---------- Atalhos de teclado ---------- */
+        function focoBusca() {
+            var i = document.querySelector('input[type="search"], #busca, input[placeholder*="uscar"], input[placeholder*="rocurar"]');
+            if (i) { i.focus(); i.select && i.select(); return true; }
+            return false;
+        }
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            var tag = (e.target.tagName || '').toLowerCase();
+            var digitando = tag === 'input' || tag === 'textarea' || e.target.isContentEditable;
+            var help = document.getElementById('kbd-help');
+
+            if (e.key === 'Escape') { if (help) help.classList.remove('show'); if (digitando) e.target.blur(); return; }
+            if (digitando) return;
+
+            switch (e.key) {
+                case 'v': case 'V': location.href = '/vitrine'; break;
+                case 't': case 'T': location.href = '/super-trunfo'; break;
+                case 'h': case 'H': location.href = '/'; break;
+                case 'g': case 'G': abrirGaragem(true); break;
+                case 'm': case 'M':
+                    var on = SOM.toggle(); var b = document.getElementById('som-toggle');
+                    if (b) b.textContent = on ? '🔊' : '🔇'; break;
+                case '/': if (focoBusca()) e.preventDefault(); break;
+                case '?': if (help) help.classList.toggle('show'); break;
+            }
+        });
     })();
     </script>
 </body>
