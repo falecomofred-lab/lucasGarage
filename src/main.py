@@ -646,32 +646,44 @@ def _salvar_sala(db, room, data):
 
 
 def _quem_sou(data, token):
-    if token and token == data.get("host_token"):
-        return 1
-    if token and token == data.get("guest_token"):
-        return 2
-    return 0
+    """Índice (0-based) do jogador com esse token, ou -1 (espectador)."""
+    for i, p in enumerate(data.get("players", [])):
+        if token and p.get("token") == token:
+            return i
+    return -1
+
+
+def _ativos(data):
+    return [i for i, p in enumerate(data["players"]) if not p.get("out") and p["pile"]]
 
 
 def _resolver(data, attr):
-    a = data["p1"][0]; b = data["p2"][0]
-    va = a["stats"][attr]; vb = b["stats"][attr]
-    if va == vb:
-        winner = 0
-    elif _ATTR_DIR[attr] == "low":
-        winner = 1 if va < vb else 2
+    players = data["players"]
+    ativos = _ativos(data)
+    tops = {i: players[i]["pile"][0] for i in ativos}
+    vals = {i: tops[i]["stats"][attr] for i in ativos}
+    melhor = min(vals.values()) if _ATTR_DIR[attr] == "low" else max(vals.values())
+    vencedores = [i for i in ativos if vals[i] == melhor]
+    coletadas = [tops[i] for i in ativos]
+    for i in ativos:
+        players[i]["pile"].pop(0)
+    data["last"] = {
+        "attr": attr,
+        "plays": [{"i": i, "name": players[i]["name"], "card": tops[i], "val": vals[i]} for i in ativos],
+        "winner": vencedores[0] if len(vencedores) == 1 else -1,
+    }
+    if len(vencedores) == 1:
+        w = vencedores[0]
+        outras = [tops[i] for i in ativos if i != w]
+        players[w]["pile"].extend([tops[w]] + outras + data["pot"])
+        data["pot"] = []
+        data["chooser"] = w
     else:
-        winner = 1 if va > vb else 2
-    data["p1"].pop(0); data["p2"].pop(0)
-    if winner == 0:
-        data["pot"].extend([a, b])
-    elif winner == 1:
-        data["p1"].extend([a, b] + data["pot"]); data["pot"] = []; data["chooser"] = 1
-    else:
-        data["p2"].extend([b, a] + data["pot"]); data["pot"] = []; data["chooser"] = 2
-    data["last"] = {"attr": attr, "v1": va, "v2": vb, "winner": winner,
-                    "c1": a, "c2": b}
+        data["pot"].extend(coletadas)
     data["phase"] = "reveal"
+
+
+MAX_JOGADORES = 6
 
 
 @app.post("/game/new")
@@ -681,19 +693,18 @@ async def game_new(db=Depends(get_db)):
     if len(deck) < 2:
         return JSONResponse(content={"error": "Publique pelo menos 2 carros para jogar."}, status_code=400)
 
-    d = deck[:]
-    _random.shuffle(d)
-    meio = len(d) // 2
     code = "".join(_random.choices(_string.ascii_uppercase + _string.digits, k=5))
     host_token = _uuid.uuid4().hex
     data = {
-        "p1": d[:meio], "p2": d[meio:], "pot": [],
-        "chooser": 1, "rodada": 1, "phase": "waiting", "last": None,
-        "host_token": host_token, "guest_token": None,
+        "deck": deck,
+        "players": [{"token": host_token, "name": "Jogador 1", "pile": [], "out": False}],
+        "host_token": host_token,
+        "pot": [], "chooser": 0, "rodada": 1, "phase": "lobby", "last": None,
+        "max": MAX_JOGADORES,
     }
     db.add(GameRoomModel(code=code, data=_json.dumps(data)))
     db.commit()
-    return JSONResponse(content={"code": code, "token": host_token, "player": 1})
+    return JSONResponse(content={"code": code, "token": host_token, "player": 0})
 
 
 @app.post("/game/{code}/join")
@@ -703,16 +714,43 @@ async def game_join(code: str, request: Request, db=Depends(get_db)):
     room, data = _carregar_sala(db, code)
     if not room:
         return JSONResponse(content={"error": "Sala não encontrada"}, status_code=404)
-    p = _quem_sou(data, token)
-    if p:
-        return JSONResponse(content={"token": token, "player": p})
-    if not data.get("guest_token"):
-        gt = _uuid.uuid4().hex
-        data["guest_token"] = gt
-        data["phase"] = "playing"
-        _salvar_sala(db, room, data)
-        return JSONResponse(content={"token": gt, "player": 2})
-    return JSONResponse(content={"token": "", "player": 0})  # espectador
+    i = _quem_sou(data, token)
+    if i >= 0:
+        return JSONResponse(content={"token": token, "player": i})
+    if data["phase"] != "lobby" or len(data["players"]) >= data.get("max", MAX_JOGADORES):
+        return JSONResponse(content={"token": "", "player": -1})  # espectador
+    novo = _uuid.uuid4().hex
+    idx = len(data["players"])
+    data["players"].append({"token": novo, "name": f"Jogador {idx + 1}", "pile": [], "out": False})
+    _salvar_sala(db, room, data)
+    return JSONResponse(content={"token": novo, "player": idx})
+
+
+@app.post("/game/{code}/start")
+async def game_start(code: str, request: Request, db=Depends(get_db)):
+    form = await request.form()
+    token = form.get("token") or ""
+    room, data = _carregar_sala(db, code)
+    if not room:
+        return JSONResponse(content={"error": "Sala não encontrada"}, status_code=404)
+    if token != data["host_token"]:
+        return JSONResponse(content={"error": "Só o host pode começar."}, status_code=403)
+    if data["phase"] != "lobby" or len(data["players"]) < 2:
+        return JSONResponse(content={"error": "Precisa de pelo menos 2 jogadores."}, status_code=409)
+
+    d = data["deck"][:]
+    _random.shuffle(d)
+    n = len(data["players"])
+    for p in data["players"]:
+        p["pile"] = []
+    for k, card in enumerate(d):
+        data["players"][k % n]["pile"].append(card)
+    data["deck"] = []
+    data["phase"] = "playing"
+    data["chooser"] = 0
+    data["rodada"] = 1
+    _salvar_sala(db, room, data)
+    return JSONResponse(content={"ok": True})
 
 
 @app.get("/game/{code}/state")
@@ -722,17 +760,27 @@ async def game_state(code: str, token: str = "", db=Depends(get_db)):
         return JSONResponse(content={"error": "Sala não encontrada"}, status_code=404)
     you = _quem_sou(data, token)
     phase = data["phase"]
-    revelar = phase in ("reveal", "over")
-    minha = (data["p1"][0] if you == 1 else data["p2"][0] if you == 2 else None) if (data["p1"] and data["p2"]) else None
+    players = data["players"]
+    resumo = [{"name": p["name"], "count": len(p["pile"]), "out": bool(p.get("out"))} for p in players]
+
     out = {
-        "phase": phase, "chooser": data["chooser"], "rodada": data["rodada"], "you": you,
-        "counts": {"p1": len(data["p1"]), "p2": len(data["p2"])},
-        "yourCard": minha,
-        "last": data["last"] if revelar else None,
+        "phase": phase,
+        "you": you,
+        "isHost": (token == data["host_token"]),
+        "chooser": data["chooser"],
+        "chooserName": players[data["chooser"]]["name"] if players else "",
+        "rodada": data["rodada"],
+        "players": resumo,
+        "nplayers": len(players),
     }
+    if phase in ("playing", "reveal") and 0 <= you < len(players) and players[you]["pile"]:
+        out["yourCard"] = players[you]["pile"][0]
+    if phase in ("reveal", "over"):
+        out["last"] = data["last"]
     if phase == "over":
-        c1, c2 = len(data["p1"]), len(data["p2"])
-        out["winner"] = 1 if c1 > c2 else 2 if c2 > c1 else 0
+        ativos = _ativos(data)
+        out["winner"] = ativos[0] if ativos else -1
+        out["winnerName"] = players[ativos[0]]["name"] if ativos else ""
     return JSONResponse(content=out)
 
 
@@ -758,10 +806,23 @@ async def game_next(code: str, db=Depends(get_db)):
     if not room:
         return JSONResponse(content={"error": "Sala não encontrada"}, status_code=404)
     if data["phase"] == "reveal":
+        # elimina quem ficou sem cartas
+        for p in data["players"]:
+            if not p["pile"]:
+                p["out"] = True
+        ativos = _ativos(data)
         data["rodada"] += 1
-        if not data["p1"] or not data["p2"] or data["rodada"] > 300:
+        if len(ativos) <= 1 or data["rodada"] > 500:
             data["phase"] = "over"
         else:
+            # garante que quem escolhe está ativo
+            n = len(data["players"])
+            if data["chooser"] not in ativos:
+                for passo in range(1, n + 1):
+                    cand = (data["chooser"] + passo) % n
+                    if cand in ativos:
+                        data["chooser"] = cand
+                        break
             data["phase"] = "playing"
         _salvar_sala(db, room, data)
     return JSONResponse(content={"ok": True})

@@ -21,24 +21,20 @@
 <script>
 const CODE = "{{ code }}";
 let meuToken = localStorage.getItem('gt_' + CODE) || "";
-let euSou = 0;
 let ultimaAssinatura = "";
 let ocupado = false;
 
 const ATTRS = [
-    { key: 'velocidade', label: '⚡ Velocidade', dir: 'high' },
-    { key: 'potencia',   label: '🔧 Potência',   dir: 'high' },
-    { key: 'ano',        label: '📅 Ano',         dir: 'low'  },
-    { key: 'raridade',   label: '💎 Raridade',    dir: 'high' },
+    { key: 'velocidade', label: '⚡ Velocidade' },
+    { key: 'potencia',   label: '🔧 Potência' },
+    { key: 'ano',        label: '📅 Ano' },
+    { key: 'raridade',   label: '💎 Raridade' },
 ];
 
-function fotoHTML(c) {
-    if (c && c.photo) return '<img src="' + c.photo + '" class="absolute inset-0 w-full h-full object-cover">';
-    return '<div class="absolute inset-0 flex items-center justify-center font-display text-4xl font-bold text-white/15">1:32</div>';
-}
 function esc(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+function fotoHTML(c){ return (c&&c.photo) ? '<img src="'+c.photo+'" class="absolute inset-0 w-full h-full object-cover">' : '<div class="absolute inset-0 flex items-center justify-center font-display text-4xl font-bold text-white/15">1:32</div>'; }
 
-function cartaHTML(c, interativo, destaque) {
+function cartaHTML(c, interativo, destaque, vencedora) {
     if (!c) return '';
     const linhas = ATTRS.map(function (a) {
         const val = c.stats[a.key];
@@ -47,23 +43,27 @@ function cartaHTML(c, interativo, destaque) {
             return '<button onclick="escolher(\'' + a.key + '\')" class="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 hover:bg-garage-ferrari active:scale-95 transition-all text-left">' +
                 '<span class="text-sm font-bold">' + a.label + '</span><span class="font-display text-lg font-bold">' + val + '</span></button>';
         }
-        return '<div class="flex items-center justify-between px-4 py-2.5 rounded-xl ' + (hl ? 'bg-garage-ferrari/25 border border-garage-ferrari' : 'bg-white/5') + '">' +
-            '<span class="text-sm font-bold">' + a.label + '</span><span class="font-display text-lg font-bold ' + (hl ? 'text-garage-ferrari' : '') + '">' + val + '</span></div>';
+        return '<div class="flex items-center justify-between px-3 py-2 rounded-lg ' + (hl ? 'bg-garage-ferrari/25 border border-garage-ferrari' : 'bg-white/5') + '">' +
+            '<span class="text-xs font-bold">' + a.label + '</span><span class="font-display text-base font-bold ' + (hl ? 'text-garage-ferrari' : '') + '">' + val + '</span></div>';
     }).join('');
-    const logo = c.logo ? '<div class="absolute bottom-2 left-2 w-9 h-9 rounded-full bg-white/95 flex items-center justify-center p-1"><img src="' + c.logo + '" class="max-w-full max-h-full object-contain" onerror="this.parentElement.style.display=\'none\'"></div>' : '';
-    return '<div class="rounded-3xl overflow-hidden border border-white/10 bg-garage-dark shadow-xl">' +
+    const logo = c.logo ? '<div class="absolute bottom-2 left-2 w-8 h-8 rounded-full bg-white/95 flex items-center justify-center p-1"><img src="' + c.logo + '" class="max-w-full max-h-full object-contain" onerror="this.parentElement.style.display=\'none\'"></div>' : '';
+    const ring = vencedora ? 'ring-2 ring-garage-ferrari' : 'border border-white/10';
+    return '<div class="rounded-2xl overflow-hidden ' + ring + ' bg-garage-dark shadow-xl">' +
         '<div class="relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite to-black overflow-hidden">' + fotoHTML(c) + logo +
         '<div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div></div>' +
-        '<div class="p-4"><h3 class="font-display text-lg font-bold line-clamp-1">' + esc(c.name) + '</h3>' +
-        '<p class="text-xs text-gray-400 uppercase tracking-wider mb-3">' + esc(c.mfr || '—') + '</p>' +
-        '<div class="space-y-2">' + linhas + '</div></div></div>';
+        '<div class="p-3"><h3 class="font-display text-sm font-bold line-clamp-1">' + esc(c.name) + '</h3>' +
+        '<p class="text-[10px] text-gray-400 uppercase tracking-wider mb-2">' + esc(c.mfr || '—') + '</p>' +
+        '<div class="space-y-1.5">' + linhas + '</div></div></div>';
 }
 
 function placarHTML(s) {
-    return '<div class="flex items-center justify-between mb-3 text-center text-xs">' +
-        '<div><p class="text-gray-500 uppercase tracking-widest">Você (J' + s.you + ')</p><p class="font-display text-xl font-bold">' + (s.you===1?s.counts.p1:s.counts.p2) + '</p></div>' +
-        '<div><p class="text-gray-500 uppercase tracking-widest">Rodada</p><p class="font-display text-lg font-bold text-garage-ferrari">' + s.rodada + '</p></div>' +
-        '<div><p class="text-gray-500 uppercase tracking-widest">Oponente</p><p class="font-display text-xl font-bold">' + (s.you===1?s.counts.p2:s.counts.p1) + '</p></div></div>';
+    const chips = s.players.map(function (p, i) {
+        const ativo = (i === s.chooser && s.phase !== 'over');
+        const cls = p.out ? 'bg-white/5 text-gray-600 line-through' : (ativo ? 'bg-garage-ferrari text-white' : 'bg-white/10 text-gray-200');
+        const eu = (i === s.you) ? ' ⭐' : '';
+        return '<div class="' + cls + ' px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">' + esc(p.name) + eu + ' · ' + p.count + '</div>';
+    }).join('');
+    return '<div class="flex flex-wrap gap-2 justify-center mb-4">' + chips + '</div>';
 }
 
 async function escolher(attr) {
@@ -77,48 +77,72 @@ async function proxima() {
     try { await fetch('/game/' + CODE + '/next', { method: 'POST' }); } catch (e) {}
     ocupado = false; ultimaAssinatura = ''; atualizar();
 }
+async function comecar() {
+    if (ocupado) return; ocupado = true;
+    const fd = new FormData(); fd.append('token', meuToken);
+    try { const r = await fetch('/game/' + CODE + '/start', { method: 'POST', body: fd }); const d = await r.json(); if (d.error) alert(d.error); } catch (e) {}
+    ocupado = false; ultimaAssinatura = ''; atualizar();
+}
 function copiarLink() {
     const url = location.origin + '/jogo/' + CODE;
-    if (navigator.share) { navigator.share({ title: 'Duelo Super Trunfo', text: 'Bora duelar no Lucas Garage!', url: url }); }
-    else { navigator.clipboard.writeText(url); alert('Link copiado! Mande pro seu amigo.'); }
+    if (navigator.share) navigator.share({ title: 'Duelo Super Trunfo', text: 'Bora duelar no Lucas Garage!', url: url });
+    else { navigator.clipboard.writeText(url); alert('Link copiado! Mande pros seus amigos.'); }
 }
 
 function render(s) {
     const area = document.getElementById('area');
-    document.getElementById('eu-sou').textContent = s.you ? ('Jogador ' + s.you) : 'Espectador';
+    document.getElementById('eu-sou').textContent = s.you >= 0 ? ('Jogador ' + (s.you + 1)) : 'Espectador';
 
-    if (s.phase === 'waiting') {
-        area.innerHTML = '<div class="glass-card rounded-3xl p-8 text-center">' +
-            '<p class="text-5xl mb-4">📲</p><p class="text-gray-300 mb-2 font-bold">Aguardando o amigo entrar...</p>' +
-            '<p class="text-gray-500 text-sm mb-6">Mande o link para o seu adversário. Assim que ele abrir, o duelo começa.</p>' +
-            '<button onclick="copiarLink()" class="bg-garage-ferrari hover:bg-red-700 text-white font-bold px-6 py-3 rounded-2xl transition-all">🔗 Compartilhar link do duelo</button></div>';
+    if (s.phase === 'lobby') {
+        const lista = s.players.map(function (p) { return '<div class="bg-white/5 rounded-xl px-4 py-2 text-sm font-bold">🎮 ' + esc(p.name) + '</div>'; }).join('');
+        let acao;
+        if (s.isHost) {
+            acao = s.nplayers >= 2
+                ? '<button onclick="comecar()" class="w-full bg-garage-ferrari hover:bg-red-700 text-white font-bold px-6 py-4 rounded-2xl transition-all text-lg">▶ Começar duelo (' + s.nplayers + ' jogadores)</button>'
+                : '<p class="text-gray-500 text-sm">Aguardando pelo menos 1 amigo entrar...</p>';
+        } else {
+            acao = '<p class="text-gray-400 text-sm">Você entrou! Aguardando o host começar...</p>';
+        }
+        area.innerHTML = '<div class="glass-card rounded-3xl p-6 text-center">' +
+            '<p class="text-5xl mb-3">📲</p>' +
+            '<p class="text-gray-300 font-bold mb-1">Sala de duelo aberta</p>' +
+            '<p class="text-gray-500 text-xs mb-4">Mande o link para os amigos (até 6 jogadores).</p>' +
+            '<button onclick="copiarLink()" class="w-full bg-white/10 hover:bg-white/20 border border-garage-ferrari/40 text-white font-bold px-4 py-3 rounded-2xl transition-all mb-4">🔗 Compartilhar link</button>' +
+            '<div class="space-y-2 mb-4 text-left">' + lista + '</div>' + acao + '</div>';
         return;
     }
     if (s.phase === 'over') {
         const venceu = (s.winner === s.you);
-        area.innerHTML = '<div class="glass-card rounded-3xl p-8 text-center">' +
-            '<p class="text-6xl mb-4">' + (s.winner === 0 ? '🤝' : (venceu ? '🏆' : '😢')) + '</p>' +
-            '<p class="font-display text-2xl font-bold mb-2">' + (s.winner === 0 ? 'Empate!' : (venceu ? 'Você venceu!' : 'Você perdeu!')) + '</p>' +
+        area.innerHTML = placarHTML(s) + '<div class="glass-card rounded-3xl p-8 text-center">' +
+            '<p class="text-6xl mb-4">' + (venceu ? '🏆' : '🏁') + '</p>' +
+            '<p class="font-display text-2xl font-bold mb-2">' + (venceu ? 'Você venceu!' : esc(s.winnerName) + ' venceu!') + '</p>' +
             '<a href="/super-trunfo" class="inline-block mt-4 bg-garage-ferrari hover:bg-red-700 text-white font-bold px-6 py-3 rounded-2xl transition-all">🔄 Novo duelo</a></div>';
         return;
     }
     if (s.phase === 'reveal' && s.last) {
         const venc = s.last.winner;
-        const banner = (venc === 0)
+        const nomeVenc = venc >= 0 ? (s.players[venc] ? s.players[venc].name : ('Jogador ' + (venc + 1))) : null;
+        const banner = (venc < 0)
             ? '<div class="text-center font-display font-bold text-lg py-3 rounded-2xl mb-3 bg-white/10 text-gray-200">🤝 Empate! Cartas pro monte.</div>'
-            : '<div class="text-center font-display font-bold text-lg py-3 rounded-2xl mb-3 bg-garage-ferrari/20 text-garage-ferrari border border-garage-ferrari/40">🏁 Jogador ' + venc + ' venceu a rodada!</div>';
+            : '<div class="text-center font-display font-bold text-lg py-3 rounded-2xl mb-3 bg-garage-ferrari/20 text-garage-ferrari border border-garage-ferrari/40">🏁 ' + esc(nomeVenc) + ' venceu a rodada!</div>';
+        const cards = s.last.plays.map(function (pl) {
+            return '<div><p class="text-center text-[10px] text-gray-500 mb-1 uppercase tracking-widest">' + esc(pl.name) + '</p>' +
+                cartaHTML(pl.card, false, s.last.attr, pl.i === venc) + '</div>';
+        }).join('');
         area.innerHTML = placarHTML(s) + banner +
-            '<div class="grid grid-cols-2 gap-3">' +
-            '<div><p class="text-center text-xs text-gray-500 mb-1 uppercase tracking-widest">J1</p>' + cartaHTML(s.last.c1, false, s.last.attr) + '</div>' +
-            '<div><p class="text-center text-xs text-gray-500 mb-1 uppercase tracking-widest">J2</p>' + cartaHTML(s.last.c2, false, s.last.attr) + '</div></div>' +
+            '<div class="grid grid-cols-2 gap-3">' + cards + '</div>' +
             '<button onclick="proxima()" class="w-full mt-4 bg-garage-ferrari hover:bg-red-700 text-white font-bold py-3 rounded-2xl transition-all">Próxima rodada →</button>';
         return;
     }
     // playing
     const souChooser = (s.you === s.chooser);
     let html = placarHTML(s);
-    html += '<p class="text-center font-bold mb-3">' + (souChooser ? 'Sua vez — <span class="text-garage-ferrari">escolha um atributo</span>' : 'Aguardando o <span class="text-garage-ferrari">Jogador ' + s.chooser + '</span> escolher...') + '</p>';
-    html += cartaHTML(s.yourCard, souChooser, null);
+    if (s.you < 0 || (s.players[s.you] && s.players[s.you].out)) {
+        html += '<p class="text-center text-gray-500 py-6">Você está assistindo. Vez de <span class="text-garage-ferrari font-bold">' + esc(s.chooserName) + '</span>.</p>';
+        area.innerHTML = html; return;
+    }
+    html += '<p class="text-center font-bold mb-3">' + (souChooser ? 'Sua vez — <span class="text-garage-ferrari">escolha um atributo</span>' : 'Aguardando <span class="text-garage-ferrari">' + esc(s.chooserName) + '</span> escolher...') + '</p>';
+    html += cartaHTML(s.yourCard, souChooser, null, false);
     area.innerHTML = html;
 }
 
@@ -127,8 +151,8 @@ async function atualizar() {
         const r = await fetch('/game/' + CODE + '/state?token=' + encodeURIComponent(meuToken));
         const s = await r.json();
         if (s.error) return;
-        euSou = s.you;
-        const assin = s.phase + '|' + s.chooser + '|' + s.rodada + '|' + s.counts.p1 + '|' + s.counts.p2 + '|' + (s.last ? s.last.attr : '');
+        const assin = s.phase + '|' + s.chooser + '|' + s.rodada + '|' + s.nplayers + '|' +
+            s.players.map(function (p) { return p.count + (p.out ? 'x' : ''); }).join(',') + '|' + (s.last ? s.last.attr : '') + '|' + s.isHost;
         if (assin !== ultimaAssinatura) { ultimaAssinatura = assin; render(s); }
     } catch (e) {}
 }
