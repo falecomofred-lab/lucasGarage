@@ -16,9 +16,14 @@
             <p class="text-6xl mb-4">🃏</p>
             <p class="text-gray-300 mb-2">Duelo de cartas com as suas miniaturas.</p>
             <p class="text-gray-500 text-sm mb-6">2 jogadores no mesmo celular (passa-e-joga). Quem escolhe o atributo tenta vencer o do adversário. Quem ficar com todas as cartas ganha!</p>
-            <button onclick="iniciar()" class="bg-garage-ferrari hover:bg-red-700 text-white font-bold px-8 py-4 rounded-2xl transition-all shadow-lg shadow-garage-ferrari/30 text-lg">
-                ▶ Iniciar duelo
-            </button>
+            <div class="flex flex-col gap-3 items-center">
+                <button onclick="iniciar()" class="w-full max-w-xs bg-garage-ferrari hover:bg-red-700 text-white font-bold px-8 py-4 rounded-2xl transition-all shadow-lg shadow-garage-ferrari/30 text-lg">
+                    ▶ Jogar aqui (2 no mesmo celular)
+                </button>
+                <button onclick="criarSalaOnline(this)" class="w-full max-w-xs bg-white/10 hover:bg-white/20 border border-garage-ferrari/40 text-white font-bold px-8 py-4 rounded-2xl transition-all text-lg">
+                    🌐 Jogar online (mandar link)
+                </button>
+            </div>
             <p id="deck-info" class="text-xs text-gray-600 mt-4"></p>
         </div>
 
@@ -81,6 +86,20 @@ const ATTRS = [
 let p1 = [], p2 = [], pot = [], chooser = 1, rodada = 1;
 
 document.getElementById('deck-info').textContent = 'Baralho: ' + DECK.length + ' cartas';
+
+async function criarSalaOnline(btn) {
+    if (DECK.length < 2) { alert('Publique pelo menos 2 carros para jogar.'); return; }
+    btn.textContent = 'Criando sala...';
+    try {
+        const r = await fetch('/game/new', { method: 'POST' });
+        const d = await r.json();
+        if (d.error) { alert(d.error); btn.textContent = '🌐 Jogar online (mandar link)'; return; }
+        localStorage.setItem('gt_' + d.code, d.token);
+        location.href = '/jogo/' + d.code;
+    } catch (e) {
+        alert('Erro ao criar a sala.'); btn.textContent = '🌐 Jogar online (mandar link)';
+    }
+}
 
 function shuffle(a) {
     a = a.slice();

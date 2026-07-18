@@ -82,6 +82,16 @@ class LikeModel(Base):
     created_at = Column(DateTime, server_default=func.now())
 
 
+class GameRoomModel(Base):
+    """Sala de duelo online do Super Trunfo (estado completo em JSON)."""
+    __tablename__ = "game_rooms"
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(12), unique=True, index=True, nullable=False)
+    data = Column(Text)  # JSON com o estado do jogo
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+
 def get_db():
     db = SessionLocal()
     try:

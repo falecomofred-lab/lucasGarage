@@ -593,6 +593,190 @@ async def super_trunfo(request: Request, db=Depends(get_db)):
     return HTMLResponse(template.render(request=request, deck=deck))
 
 
+# ══════════════ DUELO ONLINE (Super Trunfo por link, tempo real via polling) ══════════════
+import json as _json
+import uuid as _uuid
+import random as _random
+import string as _string
+
+_ATTR_DIR = {"velocidade": "high", "potencia": "high", "ano": "low", "raridade": "high"}
+
+
+async def _montar_deck(db):
+    from src.infra.repositories import SQLAlchemyManufacturerRepository
+    from src.utils.generators import battle_stats
+    repo = SQLAlchemyCarRepository(db)
+    mfr_repo = SQLAlchemyManufacturerRepository(db)
+    all_cars = await repo.get_all()
+    manufacturers = await mfr_repo.get_all()
+    for m in manufacturers:
+        m.logo_url = get_logo_url(m.name, m.logo_url)
+    mfr_map = {m.id: m for m in manufacturers}
+
+    def _st(c):
+        return c.status.value if hasattr(c.status, "value") else c.status
+    publicados = [c for c in all_cars if _st(c) == "published"]
+    cars = publicados if publicados else all_cars
+
+    deck = []
+    for c in cars:
+        urls = [u for u in (c.image_urls or []) if u]
+        mfr = mfr_map.get(c.manufacturer_id)
+        deck.append({
+            "id": c.id, "name": c.name,
+            "mfr": mfr.name if mfr else "",
+            "logo": (mfr.logo_url if mfr else "") or "",
+            "photo": urls[0] if urls else "",
+            "stats": battle_stats(c),
+        })
+    return deck
+
+
+def _carregar_sala(db, code):
+    from src.infra.database import GameRoomModel
+    room = db.query(GameRoomModel).filter(GameRoomModel.code == code).first()
+    if not room:
+        return None, None
+    return room, _json.loads(room.data)
+
+
+def _salvar_sala(db, room, data):
+    room.data = _json.dumps(data)
+    db.commit()
+
+
+def _quem_sou(data, token):
+    if token and token == data.get("host_token"):
+        return 1
+    if token and token == data.get("guest_token"):
+        return 2
+    return 0
+
+
+def _resolver(data, attr):
+    a = data["p1"][0]; b = data["p2"][0]
+    va = a["stats"][attr]; vb = b["stats"][attr]
+    if va == vb:
+        winner = 0
+    elif _ATTR_DIR[attr] == "low":
+        winner = 1 if va < vb else 2
+    else:
+        winner = 1 if va > vb else 2
+    data["p1"].pop(0); data["p2"].pop(0)
+    if winner == 0:
+        data["pot"].extend([a, b])
+    elif winner == 1:
+        data["p1"].extend([a, b] + data["pot"]); data["pot"] = []; data["chooser"] = 1
+    else:
+        data["p2"].extend([b, a] + data["pot"]); data["pot"] = []; data["chooser"] = 2
+    data["last"] = {"attr": attr, "v1": va, "v2": vb, "winner": winner,
+                    "c1": a, "c2": b}
+    data["phase"] = "reveal"
+
+
+@app.post("/game/new")
+async def game_new(db=Depends(get_db)):
+    from src.infra.database import GameRoomModel
+    deck = await _montar_deck(db)
+    if len(deck) < 2:
+        return JSONResponse(content={"error": "Publique pelo menos 2 carros para jogar."}, status_code=400)
+
+    d = deck[:]
+    _random.shuffle(d)
+    meio = len(d) // 2
+    code = "".join(_random.choices(_string.ascii_uppercase + _string.digits, k=5))
+    host_token = _uuid.uuid4().hex
+    data = {
+        "p1": d[:meio], "p2": d[meio:], "pot": [],
+        "chooser": 1, "rodada": 1, "phase": "waiting", "last": None,
+        "host_token": host_token, "guest_token": None,
+    }
+    db.add(GameRoomModel(code=code, data=_json.dumps(data)))
+    db.commit()
+    return JSONResponse(content={"code": code, "token": host_token, "player": 1})
+
+
+@app.post("/game/{code}/join")
+async def game_join(code: str, request: Request, db=Depends(get_db)):
+    form = await request.form()
+    token = form.get("token") or ""
+    room, data = _carregar_sala(db, code)
+    if not room:
+        return JSONResponse(content={"error": "Sala não encontrada"}, status_code=404)
+    p = _quem_sou(data, token)
+    if p:
+        return JSONResponse(content={"token": token, "player": p})
+    if not data.get("guest_token"):
+        gt = _uuid.uuid4().hex
+        data["guest_token"] = gt
+        data["phase"] = "playing"
+        _salvar_sala(db, room, data)
+        return JSONResponse(content={"token": gt, "player": 2})
+    return JSONResponse(content={"token": "", "player": 0})  # espectador
+
+
+@app.get("/game/{code}/state")
+async def game_state(code: str, token: str = "", db=Depends(get_db)):
+    room, data = _carregar_sala(db, code)
+    if not room:
+        return JSONResponse(content={"error": "Sala não encontrada"}, status_code=404)
+    you = _quem_sou(data, token)
+    phase = data["phase"]
+    revelar = phase in ("reveal", "over")
+    minha = (data["p1"][0] if you == 1 else data["p2"][0] if you == 2 else None) if (data["p1"] and data["p2"]) else None
+    out = {
+        "phase": phase, "chooser": data["chooser"], "rodada": data["rodada"], "you": you,
+        "counts": {"p1": len(data["p1"]), "p2": len(data["p2"])},
+        "yourCard": minha,
+        "last": data["last"] if revelar else None,
+    }
+    if phase == "over":
+        c1, c2 = len(data["p1"]), len(data["p2"])
+        out["winner"] = 1 if c1 > c2 else 2 if c2 > c1 else 0
+    return JSONResponse(content=out)
+
+
+@app.post("/game/{code}/choose")
+async def game_choose(code: str, request: Request, db=Depends(get_db)):
+    form = await request.form()
+    token = form.get("token") or ""
+    attr = form.get("attr") or ""
+    room, data = _carregar_sala(db, code)
+    if not room:
+        return JSONResponse(content={"error": "Sala não encontrada"}, status_code=404)
+    you = _quem_sou(data, token)
+    if data["phase"] != "playing" or you != data["chooser"] or attr not in _ATTR_DIR:
+        return JSONResponse(content={"ok": False}, status_code=409)
+    _resolver(data, attr)
+    _salvar_sala(db, room, data)
+    return JSONResponse(content={"ok": True})
+
+
+@app.post("/game/{code}/next")
+async def game_next(code: str, db=Depends(get_db)):
+    room, data = _carregar_sala(db, code)
+    if not room:
+        return JSONResponse(content={"error": "Sala não encontrada"}, status_code=404)
+    if data["phase"] == "reveal":
+        data["rodada"] += 1
+        if not data["p1"] or not data["p2"] or data["rodada"] > 300:
+            data["phase"] = "over"
+        else:
+            data["phase"] = "playing"
+        _salvar_sala(db, room, data)
+    return JSONResponse(content={"ok": True})
+
+
+@app.get("/jogo/{code}")
+async def jogo_online(code: str, request: Request, db=Depends(get_db)):
+    room, _ = _carregar_sala(db, code)
+    if not room:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/super-trunfo", status_code=303)
+    template = jinja_env.get_template("pages/jogo_online.html")
+    return HTMLResponse(template.render(request=request, code=code))
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "app": settings.APP_NAME}
