@@ -390,6 +390,65 @@
             #garage-door .shutter { transition: none; }
             .lg-ripple { display: none; }
         }
+
+        /* ═══════ MENU RECUADO (abre sob demanda) ═══════ */
+        .menu-bar { display:block; width:22px; height:2px; background:#e5e5e5; border-radius:2px;
+            transition: transform .3s ease, opacity .2s ease, background .2s ease; }
+        #menu-btn.open .menu-bar:nth-child(1){ transform: translateY(7px) rotate(45deg); }
+        #menu-btn.open .menu-bar:nth-child(2){ opacity:0; }
+        #menu-btn.open .menu-bar:nth-child(3){ transform: translateY(-7px) rotate(-45deg); }
+        #menu-btn.open .menu-bar{ background:#ff2800; }
+
+        #menu-panel { transform: translateX(112%); transition: transform .35s cubic-bezier(.4,0,.2,1); padding-top:70px; }
+        #menu-panel.open { transform: translateX(0); }
+        .menu-inner {
+            background: rgba(15,15,15,.96); backdrop-filter: blur(14px);
+            border-left:1px solid rgba(255,40,0,.25); border-bottom:1px solid rgba(255,255,255,.08);
+            border-bottom-left-radius:18px; min-width:230px; padding:16px;
+            display:flex; flex-direction:column; gap:4px; box-shadow:-12px 22px 55px rgba(0,0,0,.6);
+        }
+        .menu-item {
+            padding:12px 16px; border-radius:12px; font-weight:600; letter-spacing:.05em;
+            color:#d4d4d4; font-size:14px; background:transparent; text-align:left; width:100%;
+            transition: all .2s ease;
+        }
+        .menu-item::after { display:none; }
+        .menu-item:hover { background: rgba(255,40,0,.12); color:#fff; padding-left:22px; }
+        #menu-scrim { position:fixed; inset:0; z-index:30; background:rgba(0,0,0,.45);
+            opacity:0; visibility:hidden; transition: opacity .3s ease; }
+        #menu-scrim.open { opacity:1; visibility:visible; }
+
+        /* ═══════ EFEITO VENURE — velocidade & força ═══════ */
+        .venure-fx {
+            position:relative; display:inline-block; font-style:italic; font-weight:700;
+            letter-spacing:.04em;
+            background:linear-gradient(100deg,#ff2800 0%,#ff6a3d 28%,#ffffff 50%,#ff6a3d 72%,#ff2800 100%);
+            background-size:230% 100%;
+            -webkit-background-clip:text; background-clip:text;
+            color:transparent; -webkit-text-fill-color:transparent;
+            animation: venure-shine 3s linear infinite;
+            transition: transform .25s cubic-bezier(.2,.8,.2,1), filter .25s ease;
+        }
+        @keyframes venure-shine { 0%{ background-position:0% 0; } 100%{ background-position:230% 0; } }
+        .venure-fx:hover {
+            transform: skewX(-8deg) scale(1.07);
+            filter: drop-shadow(0 0 10px rgba(255,40,0,.75));
+            animation-duration:.8s;
+        }
+        /* riscos de propulsão (força/velocidade) */
+        .venure-fx::before {
+            content:''; position:absolute; top:50%; right:100%; height:2px; width:6px; margin-right:6px;
+            background:linear-gradient(to left,#ff2800,transparent);
+            transform: translateY(-50%); opacity:0; transition: opacity .2s ease;
+        }
+        .venure-fx:hover::before { opacity:1; animation: venure-thrust .4s linear infinite; }
+        @keyframes venure-thrust {
+            0%{ width:6px; opacity:.2; } 50%{ width:30px; opacity:1; } 100%{ width:6px; opacity:.2; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .venure-fx { animation:none; }
+            .venure-fx:hover::before { animation:none; }
+        }
     </style>
 </head>
 <body class="min-h-screen font-sans flex flex-col">
@@ -434,13 +493,24 @@
             </h1>
         </a>
 
-        <!-- Menu -->
-        <div class="flex items-center gap-4 sm:gap-8 text-xs sm:text-sm font-medium tracking-wide text-gray-400 shrink-0">
-            <a href="/vitrine" class="nav-link whitespace-nowrap">VITRINE</a>
-            <a href="/super-trunfo" class="nav-link whitespace-nowrap">SUPER TRUNFO</a>
-            <button id="som-toggle" onclick="const on=SOM.toggle(); this.textContent=on?'🔊':'🔇';" title="Ligar/desligar som" class="text-lg leading-none">🔊</button>
-        </div>
+        <!-- Botão do menu (tudo recuado, abre sob demanda) -->
+        <button id="menu-btn" onclick="toggleMenu()" aria-label="Menu" aria-expanded="false"
+            class="relative z-50 flex flex-col justify-center items-center gap-[5px] w-10 h-10 rounded-xl hover:bg-white/10 transition-all shrink-0">
+            <span class="menu-bar"></span><span class="menu-bar"></span><span class="menu-bar"></span>
+        </button>
     </nav>
+
+    <!-- PAINEL DO MENU (recuado) -->
+    <div id="menu-panel" class="fixed top-0 right-0 z-40">
+        <nav class="menu-inner">
+            <a href="/" class="menu-item nav-link">INÍCIO</a>
+            <a href="/vitrine" class="menu-item nav-link">VITRINE</a>
+            <a href="/super-trunfo" class="menu-item nav-link">SUPER TRUNFO</a>
+            <a href="/quiz" class="menu-item nav-link">MODO QUIZ</a>
+            <button onclick="toggleSom()" class="menu-item"><span id="som-ico">🔊</span> Som</button>
+        </nav>
+    </div>
+    <div id="menu-scrim" onclick="toggleMenu(false)"></div>
 
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="flex-1 w-full">
@@ -473,9 +543,9 @@
                 <!-- Branding Venure -->
                 <div class="md:text-right">
                     <p class="text-xs text-gray-500 mb-2">Desenvolvido por</p>
-                    <a href="https://venure.com.br" target="_blank" class="inline-block hover:opacity-80 transition-opacity">
-                        <p class="font-display font-bold text-garage-ferrari text-sm">
-                            VENURE
+                    <a href="https://venure.com.br" target="_blank" class="inline-block">
+                        <p class="font-display text-base">
+                            <span class="venure-fx">VENURE</span>
                         </p>
                         <p class="text-xs text-gray-600">Tecnologia que diverte</p>
                     </a>
@@ -489,8 +559,8 @@
                 </p>
                 <p class="text-xs text-gray-700 mt-2">
                     Solução desenvolvida por
-                    <a href="https://venure.com.br" target="_blank" class="text-garage-ferrari hover:underline">
-                        Venure - Tecnologia que diverte
+                    <a href="https://venure.com.br" target="_blank">
+                        <span class="venure-fx">Venure</span> <span class="text-gray-600">- Tecnologia que diverte</span>
                     </a>
                 </p>
             </div>
@@ -558,7 +628,21 @@
             },
         };
     })();
-    (function () { const b = document.getElementById('som-toggle'); if (b) b.textContent = SOM.isOn() ? '🔊' : '🔇'; })();
+    (function () { const b = document.getElementById('som-ico'); if (b) b.textContent = SOM.isOn() ? '🔊' : '🔇'; })();
+
+    /* ── Menu recuado (abre sob demanda) ── */
+    function toggleMenu(force) {
+        var p = document.getElementById('menu-panel'), b = document.getElementById('menu-btn'), s = document.getElementById('menu-scrim');
+        if (!p) return;
+        var open = (force === undefined) ? !p.classList.contains('open') : force;
+        p.classList.toggle('open', open); s.classList.toggle('open', open);
+        if (b) { b.classList.toggle('open', open); b.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+        if (open) { try { SOM.marcha(); } catch (e) {} }
+    }
+    function toggleSom() {
+        var on = SOM.toggle(); var i = document.getElementById('som-ico');
+        if (i) i.textContent = on ? '🔊' : '🔇';
+    }
     </script>
 
     <!-- SLIDESHOW: troca as fotos de cada card a cada 5 segundos, em loop -->
@@ -661,7 +745,7 @@
             var digitando = tag === 'input' || tag === 'textarea' || e.target.isContentEditable;
             var help = document.getElementById('kbd-help');
 
-            if (e.key === 'Escape') { if (help) help.classList.remove('show'); if (digitando) e.target.blur(); return; }
+            if (e.key === 'Escape') { if (help) help.classList.remove('show'); try { toggleMenu(false); } catch (x) {} if (digitando) e.target.blur(); return; }
             if (digitando) return;
 
             switch (e.key) {
@@ -669,9 +753,7 @@
                 case 't': case 'T': location.href = '/super-trunfo'; break;
                 case 'h': case 'H': location.href = '/'; break;
                 case 'g': case 'G': abrirGaragem(true); break;
-                case 'm': case 'M':
-                    var on = SOM.toggle(); var b = document.getElementById('som-toggle');
-                    if (b) b.textContent = on ? '🔊' : '🔇'; break;
+                case 'm': case 'M': toggleSom(); break;
                 case '/': if (focoBusca()) e.preventDefault(); break;
                 case '?': if (help) help.classList.toggle('show'); break;
             }
