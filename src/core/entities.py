@@ -45,6 +45,8 @@ class Car:
     trivia: Optional[str] = None
     image_urls: List[str] = field(default_factory=list)
     status: CarStatus = CarStatus.DRAFT
+    velocidade: Optional[int] = None
+    potencia: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

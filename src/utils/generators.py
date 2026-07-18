@@ -113,26 +113,31 @@ _BATTLE_BASE = {
 _RARITY_POINTS = {"S": 96, "A": 86, "B": 72, "C": 58}
 
 
-def battle_stats(car) -> dict:
-    """
-    Atributos de batalha do Super Trunfo, calculados de forma determinística
-    a partir da classe, ano e raridade do carro (não precisa cadastro extra).
-    Direção de vitória: velocidade/potência/raridade -> MAIOR vence; ano -> MAIS ANTIGO vence.
-    """
+def battle_auto(car) -> dict:
+    """Velocidade/Potência automáticas (a partir da classe + nome)."""
     class_val = car.class_.value if hasattr(car.class_, "value") else str(car.class_)
     base_vel, base_pot = _BATTLE_BASE.get(class_val, (60, 60))
-
     seed = int(hashlib.md5((car.name or str(car.id or "")).encode()).hexdigest(), 16)
     j1 = seed % 9 - 4          # -4..+4
     j2 = (seed // 9) % 9 - 4
-
-    velocidade = max(40, min(99, base_vel + j1))
-    potencia = max(40, min(99, base_pot + j2))
-    raridade = _RARITY_POINTS.get(rarity_label(car), 60)
-
     return {
-        "velocidade": velocidade,
-        "potencia": potencia,
+        "velocidade": max(40, min(99, base_vel + j1)),
+        "potencia": max(40, min(99, base_pot + j2)),
+    }
+
+
+def battle_stats(car) -> dict:
+    """
+    Atributos de batalha do Super Trunfo. Usa os valores MANUAIS do carro
+    (velocidade/potencia) quando preenchidos; senão calcula automaticamente.
+    Direção de vitória: velocidade/potência/raridade -> MAIOR vence; ano -> MAIS ANTIGO vence.
+    """
+    auto = battle_auto(car)
+    mv = getattr(car, "velocidade", None)
+    mp = getattr(car, "potencia", None)
+    return {
+        "velocidade": max(1, min(99, int(mv))) if mv else auto["velocidade"],
+        "potencia": max(1, min(99, int(mp))) if mp else auto["potencia"],
         "ano": car.year or 2000,
-        "raridade": raridade,
+        "raridade": _RARITY_POINTS.get(rarity_label(car), 60),
     }

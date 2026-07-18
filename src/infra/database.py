@@ -49,11 +49,30 @@ class CarModel(Base):
     trivia = Column(Text)
     image_urls = Column(Text)  # JSON string
     status = Column(Enum(CarStatus), default=CarStatus.DRAFT)
+    # Atributos de batalha manuais (Super Trunfo). Se nulos, são calculados automaticamente.
+    velocidade = Column(Integer, nullable=True)
+    potencia = Column(Integer, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
     # relationships
     manufacturer = relationship("ManufacturerModel", back_populates="cars")
     category = relationship("CategoryModel", back_populates="cars")
+
+
+def ensure_columns():
+    """Adiciona colunas novas em bancos SQLite já existentes (migração leve)."""
+    from sqlalchemy import text
+    try:
+        with engine.connect() as conn:
+            cols = [r[1] for r in conn.execute(text("PRAGMA table_info(cars)")).fetchall()]
+            if cols:  # só se a tabela cars já existe
+                if "velocidade" not in cols:
+                    conn.execute(text("ALTER TABLE cars ADD COLUMN velocidade INTEGER"))
+                if "potencia" not in cols:
+                    conn.execute(text("ALTER TABLE cars ADD COLUMN potencia INTEGER"))
+                conn.commit()
+    except Exception:
+        pass
 
 class RatingModel(Base):
     """Estrela (1 a 5) dada por um amigo do Lucas a um carro."""

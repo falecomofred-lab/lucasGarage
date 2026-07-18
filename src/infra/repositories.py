@@ -112,6 +112,8 @@ class SQLAlchemyCarRepository(CarRepository):
             car_model.trivia = car.trivia
             car_model.image_urls = json.dumps(car.image_urls)
             car_model.status = car.status
+            car_model.velocidade = car.velocidade
+            car_model.potencia = car.potencia
         else:
             # Create
             car_model = CarModel(
@@ -126,6 +128,8 @@ class SQLAlchemyCarRepository(CarRepository):
                 trivia=car.trivia,
                 image_urls=json.dumps(car.image_urls),
                 status=car.status,
+                velocidade=car.velocidade,
+                potencia=car.potencia,
             )
             self.session.add(car_model)
         self.session.commit()
@@ -203,6 +207,8 @@ class SQLAlchemyCarRepository(CarRepository):
             trivia=model.trivia,
             image_urls=json.loads(model.image_urls) if model.image_urls else [],
             status=model.status,
+            velocidade=getattr(model, "velocidade", None),
+            potencia=getattr(model, "potencia", None),
             created_at=model.created_at,
             updated_at=model.updated_at,
         )

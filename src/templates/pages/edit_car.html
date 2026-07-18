@@ -192,6 +192,28 @@
                 </div>
             </div>
 
+            <!-- Atributos de Super Trunfo -->
+            <div class="p-4 rounded-2xl border border-garage-ferrari/25 bg-garage-ferrari/5">
+                <p class="text-sm font-bold mb-1">🃏 Atributos de Super Trunfo</p>
+                <p class="text-xs text-gray-500 mb-3">Deixe em branco para o app calcular automático pela classe. Preencha (1 a 99) para ajustar à mão.</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold mb-1">⚡ Velocidade</label>
+                        <input type="number" name="velocidade" min="1" max="99"
+                            value="{% if has_car and car.velocidade %}{{ car.velocidade }}{% endif %}"
+                            placeholder="auto: {{ auto_vel }}"
+                            class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white placeholder-gray-600 focus:border-garage-ferrari outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-1">🔧 Potência</label>
+                        <input type="number" name="potencia" min="1" max="99"
+                            value="{% if has_car and car.potencia %}{{ car.potencia }}{% endif %}"
+                            placeholder="auto: {{ auto_pot }}"
+                            class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white placeholder-gray-600 focus:border-garage-ferrari outline-none transition-all">
+                    </div>
+                </div>
+            </div>
+
             <!-- Descrição -->
             <div>
                 <label class="block text-sm font-bold mb-2">📝 Descrição</label>

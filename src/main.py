@@ -29,8 +29,9 @@ app = FastAPI(
 app.include_router(cars_router)
 
 # Garante que todas as tabelas existam (inclui ratings e comments)
-from src.infra.database import Base, engine
+from src.infra.database import Base, engine, ensure_columns
 Base.metadata.create_all(bind=engine)
+ensure_columns()  # adiciona colunas novas em bancos já existentes
 
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
@@ -479,9 +480,10 @@ async def edit_car_page(car_id: int, request: Request, db=Depends(get_db)):
     car_data = car if car else None
 
     # QR Code do carro (para imprimir e colar na miniatura)
-    from src.utils.generators import car_qrcode
+    from src.utils.generators import car_qrcode, battle_auto
     base_url = str(request.base_url).rstrip("/")
     qrcode = car_qrcode(car_id, base_url) if car else None
+    auto = battle_auto(car) if car else {"velocidade": 60, "potencia": 60}
 
     template = jinja_env.get_template("pages/edit_car.html")
     html = template.render(
@@ -497,7 +499,9 @@ async def edit_car_page(car_id: int, request: Request, db=Depends(get_db)):
         next_car_id=next_car_id,
         has_car=car is not None,
         saved=request.query_params.get("saved") == "1",
-        qrcode=qrcode
+        qrcode=qrcode,
+        auto_vel=auto["velocidade"],
+        auto_pot=auto["potencia"],
     )
     return HTMLResponse(content=html)
 
@@ -549,6 +553,17 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
             logger.error(f"Classe inválida: {class_str}")
             return RedirectResponse(url=f"/edit/{car_id}", status_code=303)
 
+        # Atributos de batalha (opcionais); vazio = automático
+        def _atr(v):
+            v = (v or "").strip()
+            try:
+                n = int(v)
+                return max(1, min(99, n)) if n else None
+            except ValueError:
+                return None
+        vel = _atr(form.get("velocidade"))
+        pot = _atr(form.get("potencia"))
+
         if car:
             # Atualizar existente
             logger.info(f"Atualizando carro {car_id}")
@@ -562,6 +577,8 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
             car.description = form.get("description", "").strip() or None
             car.trivia = form.get("trivia", "").strip() or None
             car.status = CarStatus(form.get("status", "draft"))
+            car.velocidade = vel
+            car.potencia = pot
         else:
             # Criar novo
             logger.info(f"Criando novo carro com id {car_id}")
@@ -576,7 +593,9 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
                 scale=form.get("scale", "1:32").strip(),
                 description=form.get("description", "").strip() or None,
                 trivia=form.get("trivia", "").strip() or None,
-                status=CarStatus(form.get("status", "draft"))
+                status=CarStatus(form.get("status", "draft")),
+                velocidade=vel,
+                potencia=pot,
             )
 
         await repo.save(car)
