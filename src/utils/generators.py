@@ -126,6 +126,88 @@ def battle_auto(car) -> dict:
     }
 
 
+CLASS_PT = {
+    "sports": "Esportivo",
+    "classic": "Clássico",
+    "supercar": "Superesportivo",
+    "muscle": "Muscle car",
+    "racing": "Competição",
+    "luxury": "Luxo",
+}
+
+
+def _opcoes(correta, candidatos, n=4):
+    """Monta n alternativas: a correta + distratores únicos, embaralhadas."""
+    import random
+    vistos = {str(correta).strip().lower()}
+    opts = [correta]
+    for c in candidatos:
+        if c is None:
+            continue
+        c = str(c).strip()
+        if not c or c.lower() in vistos:
+            continue
+        vistos.add(c.lower())
+        opts.append(c)
+        if len(opts) >= n:
+            break
+    random.shuffle(opts)
+    return opts, opts.index(correta)
+
+
+def perguntas_do_carro(car, mfr_nome, outros) -> list:
+    """
+    Gera perguntas de múltipla escolha a partir dos dados que já temos.
+    `outros` = lista de dicts {name, mfr, year, class_, color} das outras miniaturas.
+    Não usa IA nem internet.
+    """
+    import random
+    nome = car.name or "esta miniatura"
+    perguntas = []
+
+    # 1) Ano de lançamento
+    if car.year:
+        anos = [o.get("year") for o in outros if o.get("year") and o.get("year") != car.year]
+        random.shuffle(anos)
+        extras = anos[:3] or [car.year - 5, car.year + 4, car.year - 11]
+        opts, idx = _opcoes(str(car.year), [str(a) for a in extras])
+        perguntas.append({"pergunta": f"Em que ano saiu o {nome}?", "opcoes": opts, "correta": idx})
+
+    # 2) Montadora
+    if mfr_nome:
+        marcas = list({o.get("mfr") for o in outros if o.get("mfr") and o.get("mfr") != mfr_nome})
+        random.shuffle(marcas)
+        opts, idx = _opcoes(mfr_nome, marcas[:3] or ["Ferrari", "Volkswagen", "Ford"])
+        perguntas.append({"pergunta": f"Qual montadora fabricou o {nome}?", "opcoes": opts, "correta": idx})
+
+    # 3) Categoria
+    cval = car.class_.value if hasattr(car.class_, "value") else str(car.class_)
+    if cval in CLASS_PT:
+        certa = CLASS_PT[cval]
+        outras = [v for k, v in CLASS_PT.items() if k != cval]
+        random.shuffle(outras)
+        opts, idx = _opcoes(certa, outras[:3])
+        perguntas.append({"pergunta": f"Em que categoria o {nome} se encaixa?", "opcoes": opts, "correta": idx})
+
+    # 4) Cor da miniatura
+    if car.color:
+        cores = list({o.get("color") for o in outros if o.get("color") and o.get("color") != car.color})
+        random.shuffle(cores)
+        opts, idx = _opcoes(car.color, cores[:3] or ["Preto", "Prata", "Azul"])
+        perguntas.append({"pergunta": f"Qual a cor desta miniatura do {nome}?", "opcoes": opts, "correta": idx})
+
+    # 5) Atributo de batalha (Super Trunfo)
+    st = battle_stats(car)
+    vel = st["velocidade"]
+    distratores = [str(max(1, vel - random.randint(6, 18))), str(min(99, vel + random.randint(6, 18))),
+                   str(max(1, vel - random.randint(20, 32)))]
+    opts, idx = _opcoes(str(vel), distratores)
+    perguntas.append({"pergunta": f"Qual a Velocidade do {nome} no Super Trunfo?", "opcoes": opts, "correta": idx})
+
+    random.shuffle(perguntas)
+    return perguntas[:5]
+
+
 def battle_stats(car) -> dict:
     """
     Atributos de batalha do Super Trunfo. Usa os valores MANUAIS do carro

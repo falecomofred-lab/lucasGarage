@@ -214,6 +214,23 @@
                 </div>
             </div>
 
+            <!-- Preencher pela Wikipédia -->
+            {% if has_car %}
+            <div class="rounded-2xl border border-blue-400/30 bg-blue-500/5 p-4">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                        <p class="font-bold text-sm">📚 Preencher pela Wikipédia</p>
+                        <p class="text-xs text-gray-500 mt-1">Busca a história do modelo e preenche os campos abaixo. Você revisa antes de salvar.</p>
+                    </div>
+                    <button type="button" onclick="buscarWiki(this)"
+                        class="bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/40 text-white font-bold px-5 py-2.5 rounded-xl transition-all whitespace-nowrap text-sm">
+                        Buscar
+                    </button>
+                </div>
+                <p id="wiki-msg" class="text-xs mt-3 hidden"></p>
+            </div>
+            {% endif %}
+
             <!-- Descrição -->
             <div>
                 <label class="block text-sm font-bold mb-2">📝 Descrição</label>
@@ -317,6 +334,38 @@ function updateLogoPreview() {
 }
 // mostra o logo já ao abrir (se o carro já tem montadora)
 document.addEventListener('DOMContentLoaded', updateLogoPreview);
+
+// ══════ Preencher pela Wikipédia ══════
+{% if has_car %}
+async function buscarWiki(btn) {
+    const msg = document.getElementById('wiki-msg');
+    const original = btn.textContent;
+    btn.textContent = 'Buscando...'; btn.disabled = true;
+    msg.className = 'text-xs mt-3 text-gray-400'; msg.classList.remove('hidden');
+    msg.textContent = 'Consultando a Wikipédia...';
+    try {
+        const r = await fetch('/car/{{ car.id }}/wikipedia', { method: 'POST' });
+        const d = await r.json();
+        if (!r.ok || d.error) {
+            msg.className = 'text-xs mt-3 text-yellow-400';
+            msg.textContent = d.error || 'Não consegui buscar agora.';
+        } else {
+            const desc = document.getElementById('f-description');
+            const triv = document.getElementById('f-trivia');
+            if (desc && !desc.value.trim()) desc.value = d.descricao;
+            if (triv && !triv.value.trim()) triv.value = d.curiosidade;
+            msg.className = 'text-xs mt-3 text-green-400';
+            msg.textContent = 'Encontrei: ' + d.titulo + '. Campos vazios preenchidos — revise e salve.';
+            if (window.SOM) SOM.curtir();
+        }
+    } catch (e) {
+        msg.className = 'text-xs mt-3 text-yellow-400';
+        msg.textContent = 'Sem conexão com a Wikipédia agora.';
+    } finally {
+        btn.textContent = original; btn.disabled = false;
+    }
+}
+{% endif %}
 
 // ══════ Compartilhar card-imagem ══════
 {% if has_car %}

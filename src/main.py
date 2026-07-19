@@ -311,7 +311,7 @@ async def catalogo(request: Request, db=Depends(get_db)):
 async def car_detail(car_id: int, request: Request, db=Depends(get_db)):
     """Card digital premium do carro — com QR Code e compartilhamento."""
     from src.infra.repositories import SQLAlchemyManufacturerRepository
-    from src.utils.generators import calculate_score, rarity_label, car_qrcode
+    from src.utils.generators import calculate_score, rarity_label, car_qrcode, perguntas_do_carro
 
     car_repo = SQLAlchemyCarRepository(db)
     mfr_repo = SQLAlchemyManufacturerRepository(db)
@@ -338,6 +338,20 @@ async def car_detail(car_id: int, request: Request, db=Depends(get_db)):
         f"Veja na minha coleção Lucas Garage: {base_url}/car/{car.id}"
     )
 
+    # Perguntas do quiz desta carta (geradas dos dados, sem IA)
+    todos = await car_repo.get_all()
+    mfr_por_id = {m.id: m.name for m in manufacturers}
+    outros = [
+        {
+            "name": o.name,
+            "mfr": mfr_por_id.get(o.manufacturer_id),
+            "year": o.year,
+            "color": o.color,
+        }
+        for o in todos if o.id != car.id
+    ]
+    perguntas = perguntas_do_carro(car, mfr_name if mfr else "", outros)
+
     template = jinja_env.get_template("pages/detail.html")
     html = template.render(
         request=request,
@@ -351,8 +365,44 @@ async def car_detail(car_id: int, request: Request, db=Depends(get_db)):
         class_label=class_val.title(),
         qrcode=car_qrcode(car.id, base_url),
         share_text=share_text,
+        perguntas=perguntas,
     )
     return HTMLResponse(content=html)
+
+
+@app.post("/car/{car_id}/wikipedia")
+async def car_wikipedia(car_id: int, request: Request, db=Depends(get_db)):
+    """Busca a história do carro na Wikipédia e salva na ficha (1x por carro)."""
+    from src.infra.repositories import SQLAlchemyManufacturerRepository
+    from src.services.wikipedia import buscar_carro, curiosidade
+
+    if _needs_login(request):
+        return JSONResponse({"error": "Faça login para usar isso."}, status_code=401)
+
+    car_repo = SQLAlchemyCarRepository(db)
+    car = await car_repo.get_by_id(car_id)
+    if not car:
+        return JSONResponse({"error": "Carro não encontrado."}, status_code=404)
+
+    mfr_repo = SQLAlchemyManufacturerRepository(db)
+    mfrs = await mfr_repo.get_all()
+    mfr = next((m for m in mfrs if m.id == car.manufacturer_id), None)
+    mfr_nome = mfr.name if mfr and mfr.name != "Outros" else ""
+
+    try:
+        achado = buscar_carro(car.name, mfr_nome, car.year)
+    except Exception:
+        achado = None
+
+    if not achado:
+        return JSONResponse({"error": "Não achei esse modelo na Wikipédia. Tente ajustar o nome do carro."}, status_code=404)
+
+    return JSONResponse({
+        "titulo": achado["titulo"],
+        "url": achado.get("url", ""),
+        "descricao": achado["resumo"],
+        "curiosidade": curiosidade(achado["resumo"]),
+    })
 
 @app.get("/car/{car_id}/card.png")
 async def car_share_card(car_id: int, db=Depends(get_db)):

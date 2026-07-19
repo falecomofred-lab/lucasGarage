@@ -108,10 +108,90 @@
                 </div>
             </div>
         </div>
+
+        <!-- ══════ DESAFIO DA CARTA (quiz) ══════ -->
+        {% if perguntas %}
+        <section class="mt-12 glass-card rounded-3xl p-6 sm:p-8 border-garage-ferrari/20">
+            <div class="flex items-center justify-between gap-4 mb-5 flex-wrap">
+                <div>
+                    <p class="text-garage-ferrari text-[10px] font-bold tracking-[0.3em] uppercase mb-1">🎯 Desafio da carta</p>
+                    <h3 class="font-display text-xl font-bold">Quanto você sabe sobre este carro?</h3>
+                </div>
+                <p id="quiz-placar" class="font-display text-lg font-bold text-gray-400">0 / {{ perguntas|length }}</p>
+            </div>
+
+            <div id="quiz-lista" class="space-y-6"></div>
+
+            <div id="quiz-fim" class="hidden mt-6 text-center">
+                <p id="quiz-msg" class="font-display text-lg font-bold mb-3"></p>
+                <button onclick="montarQuiz()" class="bg-garage-ferrari hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition-all">
+                    🔄 Jogar de novo
+                </button>
+            </div>
+        </section>
+        {% endif %}
     </div>
 </div>
 
 <script>
+// ══════ Desafio da carta (perguntas geradas dos dados) ══════
+{% if perguntas %}
+const PERGUNTAS = {{ perguntas|tojson }};
+let quizAcertos = 0, quizRespondidas = 0;
+
+function montarQuiz() {
+    quizAcertos = 0; quizRespondidas = 0;
+    document.getElementById('quiz-placar').textContent = '0 / ' + PERGUNTAS.length;
+    document.getElementById('quiz-placar').className = 'font-display text-lg font-bold text-gray-400';
+    document.getElementById('quiz-fim').classList.add('hidden');
+    const box = document.getElementById('quiz-lista');
+    box.innerHTML = PERGUNTAS.map(function (p, i) {
+        const alts = p.opcoes.map(function (o, j) {
+            return '<button type="button" data-q="' + i + '" data-a="' + j + '" onclick="responder(this)" ' +
+                   'class="alt w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all">' +
+                   o + '</button>';
+        }).join('');
+        return '<div class="quiz-item" data-q="' + i + '">' +
+               '<p class="font-bold mb-3">' + (i + 1) + '. ' + p.pergunta + '</p>' +
+               '<div class="grid sm:grid-cols-2 gap-2">' + alts + '</div></div>';
+    }).join('');
+}
+
+function responder(btn) {
+    const qi = parseInt(btn.dataset.q, 10);
+    const ai = parseInt(btn.dataset.a, 10);
+    const item = document.querySelector('.quiz-item[data-q="' + qi + '"]');
+    if (item.dataset.feito === '1') return;
+    item.dataset.feito = '1';
+
+    const certa = PERGUNTAS[qi].correta;
+    item.querySelectorAll('.alt').forEach(function (b) {
+        const j = parseInt(b.dataset.a, 10);
+        b.disabled = true;
+        if (j === certa) b.className = 'alt w-full text-left px-4 py-3 rounded-xl bg-green-500/20 border border-green-400/50 font-bold';
+        else if (j === ai) b.className = 'alt w-full text-left px-4 py-3 rounded-xl bg-red-500/20 border border-red-400/50';
+        else b.className = 'alt w-full text-left px-4 py-3 rounded-xl bg-white/5 border border-white/10 opacity-50';
+    });
+
+    quizRespondidas++;
+    if (ai === certa) { quizAcertos++; if (window.SOM) SOM.curtir(); }
+    else if (window.SOM) SOM.marcha();
+
+    const placar = document.getElementById('quiz-placar');
+    placar.textContent = quizAcertos + ' / ' + PERGUNTAS.length;
+    placar.className = 'font-display text-lg font-bold text-garage-ferrari';
+
+    if (quizRespondidas === PERGUNTAS.length) {
+        const msg = document.getElementById('quiz-msg');
+        if (quizAcertos === PERGUNTAS.length) { msg.textContent = '🏆 Gabaritou! Você conhece esse carro de cor.'; if (window.SOM) SOM.vitoria(); }
+        else if (quizAcertos >= PERGUNTAS.length / 2) { msg.textContent = '👏 Boa! ' + quizAcertos + ' de ' + PERGUNTAS.length + '.'; }
+        else { msg.textContent = 'Dá pra melhorar: ' + quizAcertos + ' de ' + PERGUNTAS.length + '.'; }
+        document.getElementById('quiz-fim').classList.remove('hidden');
+    }
+}
+document.addEventListener('DOMContentLoaded', montarQuiz);
+{% endif %}
+
 async function shareCard() {
     const label = document.getElementById('share-btn-label');
     const original = label.textContent;
