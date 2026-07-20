@@ -45,6 +45,43 @@
     .scanline { position:absolute; top:0; left:0; height:2px; width:100%; background:linear-gradient(90deg, transparent, #ff2800, transparent); opacity:.5; z-index:4; }
     .vitrine-card:hover .scanline { opacity:1; box-shadow:0 0 10px rgba(255,40,0,.7); }
     .card-photo { filter: contrast(1.07) saturate(1.12) brightness(1.02); }
+
+    /* ══════ CARTA QUE VIRA (flip 3D) ══════ */
+    .flip { perspective: 1400px; }
+    .flip-inner {
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform .75s cubic-bezier(.4,.2,.2,1);
+    }
+    .flip.virada .flip-inner { transform: rotateY(180deg); }
+    .flip-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .flip-verso {
+        position: absolute; inset: 0;
+        transform: rotateY(180deg);
+        background: linear-gradient(160deg, #1a1a1a, #0a0a0a);
+        display: flex; flex-direction: column; justify-content: center;
+        padding: 18px; gap: 10px;
+    }
+    /* botão de virar */
+    .btn-virar {
+        position: absolute; top: 10px; right: 10px; z-index: 12;
+        width: 36px; height: 36px; border-radius: 50%;
+        background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.25);
+        backdrop-filter: blur(6px);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 15px; transition: all .25s ease;
+    }
+    .btn-virar:hover { background: #ff2800; border-color: #ff2800; transform: rotate(180deg); }
+    /* barra de atributo no verso */
+    .attr-linha { display: flex; align-items: center; gap: 10px; }
+    .attr-nome { font-size: 11px; color: #a3a3a3; width: 74px; flex-shrink: 0; }
+    .attr-barra { flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,.09); overflow: hidden; }
+    .attr-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #ff2800, #ff6a3d); }
+    .attr-val { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+    .codigo-carta {
+        font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px;
+        letter-spacing: .1em; color: #ff2800;
+    }
 </style>
 
 <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
@@ -53,8 +90,8 @@
         <!-- ══════ HERO ══════ -->
         <header class="vitrine-hero rounded-none p-6 sm:p-10 mb-10 text-center">
             <p class="text-garage-ferrari text-[11px] font-bold tracking-[0.35em] uppercase mb-3">Miniaturas 1:32 · edição de colecionador</p>
-            <h1 class="font-display text-4xl sm:text-6xl font-bold leading-tight mb-4">
-                LUCAS <span class="text-garage-ferrari">GARAGE</span>
+            <h1 class="font-display text-4xl sm:text-6xl font-bold leading-tight mb-4 titulo-vivo">
+                LUCAS GARAGE
             </h1>
             <div class="flex items-center justify-center gap-6 sm:gap-10 flex-wrap mt-6">
                 <div>
@@ -136,7 +173,7 @@
             {% set rar = rarity_map.get(car.id, 'C') %}
             {% set imgs = (car.image_urls or []) | select | list %}
             {% set rt = rating_map.get(car.id, {'avg': 0, 'count': 0}) %}
-            <div class="vitrine-card group flex flex-col {% if rar == 'S' %}foil-s{% endif %}"
+            <div class="vitrine-card flip group flex flex-col {% if rar == 'S' %}foil-s{% endif %}"
                  data-name="{{ car.name|e }}"
                  data-mfr="{{ (mfr.name if mfr else 'Outros')|e }}"
                  data-score="{{ score_map.get(car.id, 0) }}"
@@ -145,6 +182,9 @@
                 <span class="corner tl"></span><span class="corner tr"></span>
                 <span class="corner bl"></span><span class="corner br"></span>
                 <span class="scanline"></span>
+
+                <div class="flip-inner flex-1 flex flex-col">
+                <div class="flip-face flex-1 flex flex-col">
 
                 <!-- Foto 4:3 (slideshow) — clique abre o card público -->
                 <div class="photo-frame js-slideshow relative w-full aspect-[4/3] overflow-hidden cursor-pointer {% if imgs %}skeleton{% endif %}"
@@ -180,6 +220,10 @@
                     </div>
                     {% endif %}
                     <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none"></div>
+                    <!-- Virar a carta -->
+                    <button type="button" title="Ver a ficha de batalha"
+                            onclick="event.stopPropagation(); virarCarta(this)"
+                            class="btn-virar" style="top:auto; bottom:10px; right:10px;">🔄</button>
                 </div>
 
                 <!-- Info -->
@@ -218,6 +262,53 @@
                         </button>
                     </div>
                 </div>
+
+                </div><!-- /flip-face frente -->
+
+                <!-- ══════ VERSO DA CARTA ══════ -->
+                {% set st = stats_map.get(car.id, {}) %}
+                {% set cod = letras_map.get(car.id, {}) %}
+                <div class="flip-verso flip-face">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <p class="codigo-carta">{{ cod.get('codigo', '—') }}</p>
+                            <h3 class="font-display text-base font-bold line-clamp-2 leading-tight mt-1">{{ car.name }}</h3>
+                            <p class="text-[11px] txt-sec uppercase tracking-wider mt-1">{{ mfr.name if mfr else '—' }}</p>
+                        </div>
+                        <button type="button" onclick="virarCarta(this)"
+                                class="shrink-0 w-8 h-8 rounded-full bg-white/10 hover:bg-garage-ferrari border border-white/20 text-sm transition-all">✕</button>
+                    </div>
+
+                    <div class="space-y-2.5 mt-1">
+                        <div class="attr-linha">
+                            <span class="attr-nome">⚡ Velocidade</span>
+                            <span class="attr-barra"><span class="attr-fill" style="width: {{ st.get('velocidade', 0) }}%"></span></span>
+                            <span class="attr-val">{{ st.get('velocidade', '—') }}</span>
+                        </div>
+                        <div class="attr-linha">
+                            <span class="attr-nome">🔧 Potência</span>
+                            <span class="attr-barra"><span class="attr-fill" style="width: {{ st.get('potencia', 0) }}%"></span></span>
+                            <span class="attr-val">{{ st.get('potencia', '—') }}</span>
+                        </div>
+                        <div class="attr-linha">
+                            <span class="attr-nome">💎 Raridade</span>
+                            <span class="attr-barra"><span class="attr-fill" style="width: {{ st.get('raridade', 0) }}%"></span></span>
+                            <span class="attr-val">{{ st.get('raridade', '—') }}</span>
+                        </div>
+                        <div class="attr-linha">
+                            <span class="attr-nome">📅 Ano</span>
+                            <span class="attr-barra" style="background:transparent"></span>
+                            <span class="attr-val">{{ car.year or '—' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 pt-3 border-t border-white/10 flex items-center justify-between">
+                        <span class="text-garage-ferrari font-display font-bold text-sm">⚡ {{ score_map.get(car.id, 0) }} pts</span>
+                        <span class="text-[10px] txt-ter uppercase tracking-widest">Classe {{ rar }}</span>
+                    </div>
+                </div>
+
+                </div><!-- /flip-inner -->
             </div>
             {% endfor %}
         </div>
@@ -356,6 +447,14 @@ async function curtir(carId, btn) {
         const card = btn.closest('.vitrine-card');
         if (card) card.dataset.likes = d.likes;
     } catch (e) {}
+}
+
+// ══════ VIRAR A CARTA ══════
+function virarCarta(btn) {
+    const card = btn.closest('.flip');
+    if (!card) return;
+    card.classList.toggle('virada');
+    if (window.SOM) SOM.marcha();
 }
 
 // ══════ COMENTÁRIOS ══════

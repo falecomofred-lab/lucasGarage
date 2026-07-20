@@ -175,7 +175,8 @@ async def dashboard(request: Request, db=Depends(get_db)):
 async def vitrine(request: Request, db=Depends(get_db)):
     """Página pública/premium da coleção — feita para o Lucas compartilhar com amigos."""
     from src.infra.repositories import SQLAlchemyManufacturerRepository
-    from src.utils.generators import calculate_score, collector_level, rarity_label
+    from src.utils.generators import (calculate_score, collector_level, rarity_label,
+                                      battle_stats, atribuir_letras)
 
     repo = SQLAlchemyCarRepository(db)
     mfr_repo = SQLAlchemyManufacturerRepository(db)
@@ -214,6 +215,10 @@ async def vitrine(request: Request, db=Depends(get_db)):
     # nº de montadoras distintas com carros
     n_marcas = len({c.manufacturer_id for c in cars if c.manufacturer_id})
 
+    # Verso da carta: atributos de batalha + código do baralho (A3, B7...)
+    stats_map = {c.id: battle_stats(c) for c in cars}
+    letras_map = atribuir_letras([(c.id, score_map.get(c.id, 0)) for c in cars])
+
     # Carta do dia (destaque rotativo, estável durante o dia)
     import datetime as _dt
     destaque = None
@@ -237,6 +242,8 @@ async def vitrine(request: Request, db=Depends(get_db)):
         total_score=total_score,
         level=level,
         destaque=destaque,
+        stats_map=stats_map,
+        letras_map=letras_map,
     )
     return HTMLResponse(content=html)
 

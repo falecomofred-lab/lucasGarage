@@ -551,6 +551,37 @@
         .txt-ter { color:#8a8a8a; }
 
         /* ══════════════════════════════════════════════════
+           REVELAÇÃO EM CASCATA AO ROLAR
+           ══════════════════════════════════════════════════ */
+        .revelar {
+            opacity: 0;
+            transform: translateY(28px) scale(.97);
+            filter: blur(6px);
+            transition: opacity .6s cubic-bezier(.2,.8,.2,1),
+                        transform .6s cubic-bezier(.2,.8,.2,1),
+                        filter .6s ease;
+            will-change: opacity, transform;
+        }
+        /* filter:none (e não blur(0)) — filtro residual achata o 3D do flip */
+        .revelar.visivel { opacity: 1; transform: none; filter: none; }
+        @media (prefers-reduced-motion: reduce) {
+            .revelar { opacity:1; transform:none; filter:none; transition:none; }
+        }
+
+        /* ══════════════════════════════════════════════════
+           TÍTULO COM GRADIENTE VIVO
+           ══════════════════════════════════════════════════ */
+        .titulo-vivo {
+            background: linear-gradient(100deg, #fff 0%, #ff6a3d 30%, #ff2800 50%, #ff6a3d 70%, #fff 100%);
+            background-size: 250% 100%;
+            -webkit-background-clip: text; background-clip: text;
+            color: transparent; -webkit-text-fill-color: transparent;
+            animation: titulo-brilho 6s linear infinite;
+        }
+        @keyframes titulo-brilho { 0%{background-position:0% 0} 100%{background-position:250% 0} }
+        @media (prefers-reduced-motion: reduce) { .titulo-vivo { animation:none; } }
+
+        /* ══════════════════════════════════════════════════
            BARRA DE NAVEGAÇÃO INFERIOR (zona do polegar)
            ══════════════════════════════════════════════════ */
         #tabbar { display: none; }
@@ -707,7 +738,8 @@
     window.SOM = (function () {
         let ctx = null;
         function ac() { if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return ctx; }
-        function off() { return localStorage.getItem('som_off') === '1'; }
+        /* Som DESLIGADO por padrão. Só toca se a pessoa ligar no menu. */
+        function off() { return localStorage.getItem('som_on') !== '1'; }
         function tone(freq, t0, dur, type, vol) {
             const c = ac(); if (!c) return;
             const o = c.createOscillator(), g = c.createGain();
@@ -720,7 +752,7 @@
             o.start(t); o.stop(t + dur + 0.03);
         }
         return {
-            toggle() { localStorage.setItem('som_off', off() ? '0' : '1'); return !off(); },
+            toggle() { localStorage.setItem('som_on', off() ? '1' : '0'); return !off(); },
             isOn() { return !off(); },
             motor() {
                 if (off()) return; const c = ac(); if (!c) return;
@@ -778,6 +810,32 @@
         var on = SOM.toggle(); var i = document.getElementById('som-ico');
         if (i) i.textContent = on ? '🔊' : '🔇';
     }
+
+    /* ── Revelação em cascata ao rolar (aplica sozinho nos cards) ── */
+    (function () {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        if (!('IntersectionObserver' in window)) return;
+
+        var alvos = document.querySelectorAll('.car-card, .vitrine-card, .glass-card, .revelar');
+        if (!alvos.length) return;
+
+        var obs = new IntersectionObserver(function (entradas) {
+            entradas.forEach(function (e) {
+                if (!e.isIntersecting) return;
+                var el = e.target;
+                // atraso em cascata conforme a ordem na linha (máx 5 escalões)
+                var irmaos = el.parentElement ? Array.prototype.indexOf.call(el.parentElement.children, el) : 0;
+                el.style.transitionDelay = (Math.min(irmaos % 6, 5) * 70) + 'ms';
+                el.classList.add('visivel');
+                obs.unobserve(el);
+            });
+        }, { rootMargin: '0px 0px -40px 0px', threshold: 0.08 });
+
+        alvos.forEach(function (el) {
+            el.classList.add('revelar');
+            obs.observe(el);
+        });
+    })();
 
     /* ── Barra inferior: marca a aba da página atual ── */
     (function () {
