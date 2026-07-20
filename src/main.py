@@ -515,6 +515,17 @@ async def like_car(car_id: int, db=Depends(get_db)):
     return JSONResponse(content={"likes": int(total or 0)})
 
 
+from src.core.montadoras import MONTADORAS as _TODAS_MARCAS
+
+
+def _nome_montadora_do_carro(car, manufacturers):
+    """Nome da montadora atual do carro (para preencher o campo ao editar)."""
+    if not car:
+        return ""
+    m = next((x for x in manufacturers if x.id == car.manufacturer_id), None)
+    return m.name if m else ""
+
+
 @app.get("/edit/{car_id}")
 async def edit_car_page(car_id: int, request: Request, db=Depends(get_db)):
     guard = _needs_login(request)
@@ -585,6 +596,8 @@ async def edit_car_page(car_id: int, request: Request, db=Depends(get_db)):
         auto_vel=auto["velocidade"],
         auto_pot=auto["potencia"],
         letras=LETRAS,
+        todas_marcas=_TODAS_MARCAS,
+        montadora_atual=_nome_montadora_do_carro(car, manufacturers),
     )
     return HTMLResponse(content=html)
 
@@ -617,22 +630,23 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
         year_str = form.get("year", "").strip()
         class_str = form.get("class_", "").strip()
 
-        # Marca nova digitada pelo Lucas: cria (ou reaproveita) e usa ela
-        nova_marca = (form.get("nova_montadora", "") or "").strip()
-        if nova_marca:
+        # Montadora vem por NOME (campo com as 387 marcas + digitação livre).
+        # Só grava no banco a marca que o Lucas realmente usa.
+        marca_nome = (form.get("montadora_nome", "") or "").strip()
+        if marca_nome:
             from src.infra.database import ManufacturerModel
             existente = db.query(ManufacturerModel).filter(
-                ManufacturerModel.name.ilike(nova_marca)
+                ManufacturerModel.name.ilike(marca_nome)
             ).first()
             if existente:
                 manufacturer_id_str = str(existente.id)
             else:
-                nova = ManufacturerModel(name=nova_marca)
+                nova = ManufacturerModel(name=marca_nome)
                 db.add(nova)
                 db.commit()
                 db.refresh(nova)
                 manufacturer_id_str = str(nova.id)
-                logger.info(f"Montadora criada: {nova_marca} (id {nova.id})")
+                logger.info(f"Montadora criada: {marca_nome} (id {nova.id})")
 
         if not all([manufacturer_id_str, category_id_str, year_str, class_str]):
             logger.warning("Campos obrigatórios vazios")

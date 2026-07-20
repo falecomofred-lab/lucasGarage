@@ -125,25 +125,22 @@
                 <div>
                     <label class="block text-sm font-bold mb-2">🏢 Montadora *</label>
                     <div class="flex items-center gap-3">
-                        <select name="manufacturer_id" id="manufacturer_id" onchange="updateLogoPreview()"
-                            class="flex-1 bg-black/40 border border-white/20 rounded-lg p-3 text-white focus:border-garage-ferrari outline-none transition-all">
-                            <option value="">Selecione a marca...</option>
-                            {% for mfr in manufacturers | sort(attribute='name') %}
-                            <option value="{{ mfr.id }}" {% if has_car and car.manufacturer_id == mfr.id %}selected{% endif %}>{{ mfr.name }}</option>
-                            {% endfor %}
-                        </select>
+                        <input type="text" name="montadora_nome" id="montadora_nome" list="lista-marcas"
+                            value="{{ montadora_atual or '' }}" autocomplete="off"
+                            oninput="marcaDigitada()" placeholder="Digite ou escolha (ex: Cadillac)"
+                            class="flex-1 bg-black/40 border border-white/20 rounded-lg p-3 text-white placeholder-gray-600 focus:border-garage-ferrari outline-none transition-all">
+                        <datalist id="lista-marcas">
+                            {% for nome in todas_marcas %}<option value="{{ nome }}">{% endfor %}
+                        </datalist>
                         <!-- Preview automático do logo -->
                         <div id="logo-preview-box" class="w-14 h-14 rounded-xl bg-white/95 shadow flex items-center justify-center p-1.5 shrink-0 hidden">
                             <img id="logo-preview-img" src="" alt="" class="max-w-full max-h-full object-contain"
                                  onerror="document.getElementById('logo-preview-box').classList.add('hidden')">
                         </div>
                     </div>
-                    <!-- Marca que ainda não está na lista -->
-                    <input type="text" name="nova_montadora" id="nova_montadora"
-                        oninput="marcaNovaDigitada()" placeholder="Não achou? Digite a marca aqui (ex: Cadillac)"
-                        class="w-full mt-2 bg-black/40 border border-dashed border-white/25 rounded-lg p-2.5 text-white placeholder-gray-600 text-sm focus:border-garage-ferrari outline-none transition-all">
-                    <p id="aviso-marca" class="text-[11px] text-green-400 mt-1 hidden">
-                        A marca será criada e ficará disponível para os próximos carros.
+                    <p class="text-[11px] text-gray-500 mt-1.5">
+                        387 marcas disponíveis — comece a digitar que ele completa.
+                        Se a sua não estiver na lista, digite mesmo assim.
                     </p>
                 </div>
                 <div>
@@ -344,66 +341,46 @@
     if (t) setTimeout(() => { t.style.transition='opacity .4s'; t.style.opacity='0'; }, 2500);
 })();
 
-// ══════ Logo automático ao escolher a montadora ══════
-const LOGO_MAP = {{ logo_map | tojson }};
-function updateLogoPreview() {
-    const sel = document.getElementById('manufacturer_id');
+// ══════ Logo automático conforme a marca digitada ══════
+const LOGO_BASE = 'https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/';
+const EXCECOES = { 'lynk & co': 'lynk-and-co' };
+
+function slugMarca(nome) {
+    const chave = nome.trim().toLowerCase();
+    if (EXCECOES[chave]) return EXCECOES[chave];
+    return nome.normalize('NFD').replace(/[̀-ͯ]/g, '')
+               .toLowerCase().trim()
+               .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function marcaDigitada() {
+    const txt = document.getElementById('montadora_nome');
     const box = document.getElementById('logo-preview-box');
     const img = document.getElementById('logo-preview-img');
-    const url = LOGO_MAP[sel.value] || '';
-    if (url) {
-        img.src = url;
+    const valor = (txt.value || '').trim();
+    const slug = valor ? slugMarca(valor) : '';
+    if (slug) {
+        img.src = LOGO_BASE + slug + '.png';
         box.classList.remove('hidden');
     } else {
         box.classList.add('hidden');
     }
 }
-// mostra o logo já ao abrir (se o carro já tem montadora)
-document.addEventListener('DOMContentLoaded', updateLogoPreview);
+// compatibilidade com chamadas antigas
+function updateLogoPreview() { marcaDigitada(); }
+document.addEventListener('DOMContentLoaded', marcaDigitada);
 
-// ══════ Marca nova digitada ══════
-const LOGO_BASE = 'https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/';
-function slugMarca(nome) {
-    return nome.normalize('NFD').replace(/[̀-ͯ]/g, '')
-               .toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-}
-function marcaNovaDigitada() {
-    const txt = document.getElementById('nova_montadora');
-    const sel = document.getElementById('manufacturer_id');
-    const aviso = document.getElementById('aviso-marca');
-    const box = document.getElementById('logo-preview-box');
-    const img = document.getElementById('logo-preview-img');
-    const valor = txt.value.trim();
-
-    if (valor) {
-        // digitar marca nova desativa a lista (evita mandar as duas)
-        sel.value = '';
-        sel.disabled = true;
-        aviso.classList.remove('hidden');
-        const slug = slugMarca(valor);
-        if (slug) { img.src = LOGO_BASE + slug + '.png'; box.classList.remove('hidden'); }
-    } else {
-        sel.disabled = false;
-        aviso.classList.add('hidden');
-        updateLogoPreview();
-    }
-}
-
-// Validação: precisa escolher da lista OU digitar uma marca
+// Validação: a marca não pode ficar vazia
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('form[method="POST"]');
     if (!form) return;
     form.addEventListener('submit', function (e) {
-        const sel = document.getElementById('manufacturer_id');
-        const txt = document.getElementById('nova_montadora');
-        if (!sel.value && !(txt && txt.value.trim())) {
+        const txt = document.getElementById('montadora_nome');
+        if (txt && !txt.value.trim()) {
             e.preventDefault();
-            alert('Escolha uma montadora na lista ou digite uma marca nova.');
-            sel.focus();
-            return;
+            alert('Digite ou escolha a montadora.');
+            txt.focus();
         }
-        // campo desativado não é enviado — reativa antes de mandar
-        if (sel.disabled) sel.disabled = false;
     });
 });
 

@@ -111,7 +111,15 @@ def get_logo_url(manufacturer_name: str, db_logo_url: str | None = None) -> str 
     if not manufacturer_name or manufacturer_name.strip().lower() in ("outros", "outro", "—", ""):
         return None
 
-    slug = SLUGS.get(manufacturer_name) or _slugify(manufacturer_name)
+    # 1) exceção do catálogo  2) apelido conhecido  3) slug derivado do nome
+    try:
+        from src.core.montadoras import EXCECOES_SLUG
+    except Exception:
+        EXCECOES_SLUG = {}
+
+    slug = (EXCECOES_SLUG.get(manufacturer_name)
+            or SLUGS.get(manufacturer_name)
+            or _slugify(manufacturer_name))
     if not slug:
         return None
     return f"{BASE}{slug}.png"
