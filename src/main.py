@@ -379,7 +379,7 @@ async def car_detail(car_id: int, request: Request, db=Depends(get_db)):
 
 @app.post("/car/{car_id}/wikipedia")
 async def car_wikipedia(car_id: int, request: Request, db=Depends(get_db)):
-    """Busca a história do carro na Wikipédia e salva na ficha (1x por carro)."""
+    """Busca candidatos na Wikipédia e devolve a lista; quem escolhe é o Lucas."""
     from src.infra.repositories import SQLAlchemyManufacturerRepository
     from src.services.wikipedia import buscar_candidatos, curiosidade
 
