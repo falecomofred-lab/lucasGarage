@@ -126,6 +126,63 @@ def battle_auto(car) -> dict:
     }
 
 
+LETRAS = ["A", "B", "C", "D", "E", "F", "G", "H"]
+
+
+def atribuir_letras(itens):
+    """
+    Distribui as letras do baralho automaticamente pela FORÇA da carta.
+
+    itens = lista de (id, forca). As mais fortes viram A, depois B, C...
+    Divide em até 8 grupos proporcionais, então o baralho se reequilibra
+    sozinho quando o Lucas cadastra carros novos (a letra não é gravada).
+
+    Devolve {id: {"letra": "A", "codigo": "A3"}}
+    """
+    import math
+    ordenados = sorted(itens, key=lambda t: (-t[1], t[0]))
+    n = len(ordenados)
+    if n == 0:
+        return {}
+    grupos = min(len(LETRAS), n)
+    tam = math.ceil(n / grupos)
+    out = {}
+    for pos, (cid, _forca) in enumerate(ordenados):
+        gi = min(pos // tam, grupos - 1)
+        out[cid] = {"letra": LETRAS[gi], "codigo": f"{LETRAS[gi]}{pos - gi * tam + 1}"}
+    return out
+
+
+def duelo(cartas, attr_key, direcao="high"):
+    """
+    Resolve uma rodada de Super Trunfo entre N cartas.
+
+    Regras (clássicas):
+      1. A carta Super Trunfo vence todas as outras...
+      2. ...MENOS as cartas de letra A, que derrubam o Super Trunfo.
+      3. Sem Super Trunfo em jogo, compara o atributo escolhido.
+
+    `cartas` = lista de dicts com 'stats', 'letra' e 'super'.
+    Devolve (indices_vencedores, motivo). Empate = mais de um índice.
+    """
+    idx_super = [i for i, c in enumerate(cartas) if c.get("super")]
+
+    if idx_super:
+        s = idx_super[0]
+        matadores = [i for i, c in enumerate(cartas)
+                     if i != s and str(c.get("letra") or "").upper() == "A"]
+        if matadores:
+            # Entre as letras A, decide o atributo
+            vals = {i: cartas[i]["stats"][attr_key] for i in matadores}
+            melhor = min(vals.values()) if direcao == "low" else max(vals.values())
+            return [i for i in matadores if vals[i] == melhor], "letra_a"
+        return [s], "super_trunfo"
+
+    vals = {i: c["stats"][attr_key] for i, c in enumerate(cartas)}
+    melhor = min(vals.values()) if direcao == "low" else max(vals.values())
+    return [i for i in vals if vals[i] == melhor], "atributo"
+
+
 CLASS_PT = {
     "sports": "Esportivo",
     "classic": "Clássico",

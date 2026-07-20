@@ -212,22 +212,41 @@
                             class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white placeholder-gray-600 focus:border-garage-ferrari outline-none transition-all">
                     </div>
                 </div>
+
+                <!-- Carta Super Trunfo (a letra é automática) -->
+                <div class="mt-4 pt-4 border-t border-white/10">
+                    <label class="block text-xs font-bold mb-1">👑 Carta Super Trunfo</label>
+                    <label class="flex items-center gap-3 bg-black/40 border border-white/20 rounded-lg p-3 cursor-pointer hover:border-garage-ferrari transition-all">
+                        <input type="checkbox" name="super_trunfo" value="1"
+                            {% if has_car and car.super_trunfo %}checked{% endif %}
+                            class="w-5 h-5 accent-red-600">
+                        <span class="text-sm">Esta é a carta Super Trunfo do baralho</span>
+                    </label>
+                    <p class="text-[11px] text-gray-500 mt-2">
+                        Só uma no baralho — marcar aqui desmarca a anterior.
+                        A <strong class="text-white">letra</strong> (A, B, C...) é definida sozinha pela pontuação da carta:
+                        as mais fortes viram A, e só elas derrubam o Super Trunfo.
+                    </p>
+                </div>
             </div>
 
             <!-- Preencher pela Wikipédia -->
             {% if has_car %}
             <div class="rounded-2xl border border-blue-400/30 bg-blue-500/5 p-4">
-                <div class="flex items-center justify-between gap-3 flex-wrap">
-                    <div>
-                        <p class="font-bold text-sm">📚 Preencher pela Wikipédia</p>
-                        <p class="text-xs text-gray-500 mt-1">Busca a história do modelo e preenche os campos abaixo. Você revisa antes de salvar.</p>
-                    </div>
-                    <button type="button" onclick="buscarWiki(this)"
+                <p class="font-bold text-sm">📚 Preencher pela Wikipédia</p>
+                <p class="text-xs text-gray-500 mt-1 mb-3">Busca a história do modelo. Escolha o resultado certo e revise antes de salvar.</p>
+                <div class="flex gap-2 flex-wrap">
+                    <input type="text" id="wiki-termo" placeholder="{{ car.name }}"
+                        onkeydown="if(event.key==='Enter'){event.preventDefault();buscarWiki(document.getElementById('wiki-btn'));}"
+                        class="flex-1 min-w-[160px] bg-black/40 border border-white/20 rounded-lg p-2.5 text-white placeholder-gray-600 text-sm focus:border-blue-400 outline-none">
+                    <button type="button" id="wiki-btn" onclick="buscarWiki(this)"
                         class="bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/40 text-white font-bold px-5 py-2.5 rounded-xl transition-all whitespace-nowrap text-sm">
                         Buscar
                     </button>
                 </div>
+                <p class="text-[11px] text-gray-600 mt-2">Nome curto (ex: "C15") costuma confundir. Se vier errado, escreva completo — ex: "Chevrolet Série 10".</p>
                 <p id="wiki-msg" class="text-xs mt-3 hidden"></p>
+                <div id="wiki-lista" class="mt-3 space-y-2"></div>
             </div>
             {% endif %}
 
@@ -337,33 +356,72 @@ document.addEventListener('DOMContentLoaded', updateLogoPreview);
 
 // ══════ Preencher pela Wikipédia ══════
 {% if has_car %}
+let WIKI = [];
+
 async function buscarWiki(btn) {
     const msg = document.getElementById('wiki-msg');
+    const lista = document.getElementById('wiki-lista');
+    const termo = (document.getElementById('wiki-termo').value || '').trim();
     const original = btn.textContent;
     btn.textContent = 'Buscando...'; btn.disabled = true;
+    lista.innerHTML = '';
     msg.className = 'text-xs mt-3 text-gray-400'; msg.classList.remove('hidden');
     msg.textContent = 'Consultando a Wikipédia...';
     try {
-        const r = await fetch('/car/{{ car.id }}/wikipedia', { method: 'POST' });
-        const d = await r.json();
+        const r = await fetch('/car/{{ car.id }}/wikipedia', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ q: termo })
+        });
+        let d = {};
+        try { d = await r.json(); } catch (e) {}
+
         if (!r.ok || d.error) {
             msg.className = 'text-xs mt-3 text-yellow-400';
-            msg.textContent = d.error || 'Não consegui buscar agora.';
-        } else {
-            const desc = document.getElementById('f-description');
-            const triv = document.getElementById('f-trivia');
-            if (desc && !desc.value.trim()) desc.value = d.descricao;
-            if (triv && !triv.value.trim()) triv.value = d.curiosidade;
-            msg.className = 'text-xs mt-3 text-green-400';
-            msg.textContent = 'Encontrei: ' + d.titulo + '. Campos vazios preenchidos — revise e salve.';
-            if (window.SOM) SOM.curtir();
+            if (r.status === 404 && !d.error) {
+                msg.textContent = 'Rota não encontrada (404) — reinicie o servidor.';
+            } else if (r.status === 401) {
+                msg.textContent = 'Sessão expirada. Faça login de novo.';
+            } else {
+                msg.textContent = (d.error || d.detail || 'Não consegui buscar agora.') + ' [HTTP ' + r.status + ']';
+            }
+            return;
         }
+
+        WIKI = d.resultados || [];
+        msg.className = 'text-xs mt-3 text-gray-400';
+        msg.textContent = WIKI.length === 1
+            ? 'Achei 1 resultado. Confira se é o carro certo:'
+            : 'Achei ' + WIKI.length + ' resultados. Clique no correto:';
+
+        lista.innerHTML = WIKI.map(function (w, i) {
+            const legenda = w.legenda ? '<span class="text-gray-500"> · ' + w.legenda + '</span>' : '';
+            return '<button type="button" onclick="usarWiki(' + i + ')" ' +
+                'class="w-full text-left p-3 rounded-xl bg-black/30 hover:bg-blue-500/15 border border-white/10 hover:border-blue-400/50 transition-all">' +
+                '<p class="font-bold text-sm">' + w.titulo + legenda + '</p>' +
+                '<p class="text-xs text-gray-500 mt-1 line-clamp-2">' + w.curiosidade + '</p></button>';
+        }).join('');
+        if (window.SOM) SOM.marcha();
     } catch (e) {
         msg.className = 'text-xs mt-3 text-yellow-400';
         msg.textContent = 'Sem conexão com a Wikipédia agora.';
     } finally {
         btn.textContent = original; btn.disabled = false;
     }
+}
+
+function usarWiki(i) {
+    const w = WIKI[i];
+    if (!w) return;
+    const desc = document.getElementById('f-description');
+    const triv = document.getElementById('f-trivia');
+    if (desc) desc.value = w.descricao;
+    if (triv) triv.value = w.curiosidade;
+    const msg = document.getElementById('wiki-msg');
+    msg.className = 'text-xs mt-3 text-green-400';
+    msg.textContent = 'Preenchido com "' + w.titulo + '". Revise e salve.';
+    document.getElementById('wiki-lista').innerHTML = '';
+    if (window.SOM) SOM.curtir();
 }
 {% endif %}
 

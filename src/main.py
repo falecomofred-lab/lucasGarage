@@ -374,7 +374,7 @@ async def car_detail(car_id: int, request: Request, db=Depends(get_db)):
 async def car_wikipedia(car_id: int, request: Request, db=Depends(get_db)):
     """Busca a história do carro na Wikipédia e salva na ficha (1x por carro)."""
     from src.infra.repositories import SQLAlchemyManufacturerRepository
-    from src.services.wikipedia import buscar_carro, curiosidade
+    from src.services.wikipedia import buscar_candidatos, curiosidade
 
     if _needs_login(request):
         return JSONResponse({"error": "Faça login para usar isso."}, status_code=401)
@@ -389,19 +389,36 @@ async def car_wikipedia(car_id: int, request: Request, db=Depends(get_db)):
     mfr = next((m for m in mfrs if m.id == car.manufacturer_id), None)
     mfr_nome = mfr.name if mfr and mfr.name != "Outros" else ""
 
+    # Termo digitado pelo Lucas (opcional) tem prioridade sobre o nome do carro
+    termo_livre = ""
     try:
-        achado = buscar_carro(car.name, mfr_nome, car.year)
+        body = await request.json()
+        termo_livre = (body or {}).get("q", "") or ""
     except Exception:
-        achado = None
+        pass
 
-    if not achado:
-        return JSONResponse({"error": "Não achei esse modelo na Wikipédia. Tente ajustar o nome do carro."}, status_code=404)
+    try:
+        achados = buscar_candidatos(car.name, mfr_nome, termo_livre)
+    except Exception:
+        return JSONResponse({"error": "Não consegui falar com a Wikipédia agora."}, status_code=503)
+
+    if not achados:
+        return JSONResponse(
+            {"error": "Nenhum veículo encontrado com esse nome. Tente escrever o nome completo do modelo."},
+            status_code=404,
+        )
 
     return JSONResponse({
-        "titulo": achado["titulo"],
-        "url": achado.get("url", ""),
-        "descricao": achado["resumo"],
-        "curiosidade": curiosidade(achado["resumo"]),
+        "resultados": [
+            {
+                "titulo": a["titulo"],
+                "legenda": a.get("descricao_curta", ""),
+                "url": a.get("url", ""),
+                "descricao": a["resumo"],
+                "curiosidade": curiosidade(a["resumo"]),
+            }
+            for a in achados
+        ]
     })
 
 @app.get("/car/{car_id}/card.png")
@@ -538,7 +555,7 @@ async def edit_car_page(car_id: int, request: Request, db=Depends(get_db)):
     car_data = car if car else None
 
     # QR Code do carro (para imprimir e colar na miniatura)
-    from src.utils.generators import car_qrcode, battle_auto
+    from src.utils.generators import car_qrcode, battle_auto, LETRAS
     base_url = str(request.base_url).rstrip("/")
     qrcode = car_qrcode(car_id, base_url) if car else None
     auto = battle_auto(car) if car else {"velocidade": 60, "potencia": 60}
@@ -560,6 +577,7 @@ async def edit_car_page(car_id: int, request: Request, db=Depends(get_db)):
         qrcode=qrcode,
         auto_vel=auto["velocidade"],
         auto_pot=auto["potencia"],
+        letras=LETRAS,
     )
     return HTMLResponse(content=html)
 
@@ -622,6 +640,18 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
         vel = _atr(form.get("velocidade"))
         pot = _atr(form.get("potencia"))
 
+        # Letra do baralho (A, B, C...) e carta Super Trunfo
+        from src.utils.generators import LETRAS
+        letra = (form.get("letra") or "").strip().upper()
+        letra = letra if letra in LETRAS else None
+        eh_super = form.get("super_trunfo") in ("1", "on", "true")
+
+        # Só pode existir UMA carta Super Trunfo: desmarca as outras
+        if eh_super:
+            from src.infra.database import CarModel
+            db.query(CarModel).filter(CarModel.id != car_id).update({"super_trunfo": False})
+            db.commit()
+
         if car:
             # Atualizar existente
             logger.info(f"Atualizando carro {car_id}")
@@ -637,6 +667,8 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
             car.status = CarStatus(form.get("status", "draft"))
             car.velocidade = vel
             car.potencia = pot
+            car.letra = letra
+            car.super_trunfo = eh_super
         else:
             # Criar novo
             logger.info(f"Criando novo carro com id {car_id}")
@@ -654,6 +686,8 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
                 status=CarStatus(form.get("status", "draft")),
                 velocidade=vel,
                 potencia=pot,
+                letra=letra,
+                super_trunfo=eh_super,
             )
 
         await repo.save(car)
@@ -775,7 +809,7 @@ _ATTR_DIR = {"velocidade": "high", "potencia": "high", "ano": "low", "raridade":
 
 async def _montar_deck(db):
     from src.infra.repositories import SQLAlchemyManufacturerRepository
-    from src.utils.generators import battle_stats
+    from src.utils.generators import battle_stats, calculate_score, atribuir_letras
     repo = SQLAlchemyCarRepository(db)
     mfr_repo = SQLAlchemyManufacturerRepository(db)
     all_cars = await repo.get_all()
@@ -789,16 +823,25 @@ async def _montar_deck(db):
     publicados = [c for c in all_cars if _st(c) == "published"]
     cars = publicados if publicados else all_cars
 
+    # Letras do baralho: calculadas na hora, pela força da carta.
+    # Assim o baralho se reequilibra sozinho quando entram carros novos.
+    letras = atribuir_letras([(c.id, calculate_score(c)) for c in cars])
+
     deck = []
     for c in cars:
         urls = [u for u in (c.image_urls or []) if u]
         mfr = mfr_map.get(c.manufacturer_id)
+        info = letras.get(c.id, {})
         deck.append({
             "id": c.id, "name": c.name,
             "mfr": mfr.name if mfr else "",
             "logo": (mfr.logo_url if mfr else "") or "",
             "photo": urls[0] if urls else "",
             "stats": battle_stats(c),
+            # letra manual (se algum dia for usada) tem prioridade sobre a automática
+            "letra": (getattr(c, "letra", None) or info.get("letra", "")),
+            "codigo": info.get("codigo", ""),
+            "super": bool(getattr(c, "super_trunfo", False)),
         })
     return deck
 
@@ -829,17 +872,23 @@ def _ativos(data):
 
 
 def _resolver(data, attr):
+    from src.utils.generators import duelo
     players = data["players"]
     ativos = _ativos(data)
     tops = {i: players[i]["pile"][0] for i in ativos}
     vals = {i: tops[i]["stats"][attr] for i in ativos}
-    melhor = min(vals.values()) if _ATTR_DIR[attr] == "low" else max(vals.values())
-    vencedores = [i for i in ativos if vals[i] == melhor]
+
+    # Regra do baralho: Super Trunfo vence tudo, menos as cartas de letra A
+    ordem = list(ativos)
+    ganhadores, motivo = duelo([tops[i] for i in ordem], attr, _ATTR_DIR[attr])
+    vencedores = [ordem[k] for k in ganhadores]
+
     coletadas = [tops[i] for i in ativos]
     for i in ativos:
         players[i]["pile"].pop(0)
     data["last"] = {
         "attr": attr,
+        "motivo": motivo,
         "plays": [{"i": i, "name": players[i]["name"], "card": tops[i], "val": vals[i]} for i in ativos],
         "winner": vencedores[0] if len(vencedores) == 1 else -1,
     }

@@ -207,8 +207,16 @@ function cartaHTML(c, interativo, destaque) {
 
     const logo = c.logo ? '<div class="absolute bottom-2 left-2 w-9 h-9 rounded-full bg-white/95 flex items-center justify-center p-1"><img src="' + c.logo + '" class="max-w-full max-h-full object-contain" onerror="this.parentElement.style.display=\'none\'"></div>' : '';
 
-    return '<div class="rounded-3xl overflow-hidden border border-white/10 bg-garage-dark shadow-xl">' +
-           '<div class="relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite to-black overflow-hidden">' + fotoHTML(c) + logo +
+    const selo = c.super
+        ? '<div class="absolute top-2 right-2 z-20 px-3 py-1 rounded-full bg-yellow-400 text-black font-display font-bold text-xs shadow-lg">👑 SUPER TRUNFO</div>'
+        : (c.letra
+            ? '<div class="absolute top-2 right-2 z-20 w-9 h-9 rounded-full ' +
+              (String(c.letra).toUpperCase() === 'A' ? 'bg-garage-ferrari' : 'bg-black/70 border border-white/30') +
+              ' flex items-center justify-center font-display font-bold text-sm text-white shadow-lg">' + c.letra + '</div>'
+            : '');
+
+    return '<div class="rounded-3xl overflow-hidden border ' + (c.super ? 'border-yellow-400/60' : 'border-white/10') + ' bg-garage-dark shadow-xl">' +
+           '<div class="relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite to-black overflow-hidden">' + fotoHTML(c) + logo + selo +
            '<div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div></div>' +
            '<div class="p-4"><h3 class="font-display text-lg font-bold line-clamp-1">' + c.name + '</h3>' +
            '<p class="text-xs text-gray-400 uppercase tracking-wider mb-3">' + (c.mfr || '—') + '</p>' +
@@ -226,15 +234,27 @@ function render() {
     document.getElementById('carta').innerHTML = cartaHTML(carta, true, null);
 }
 
+// Regra do baralho: Super Trunfo vence todas, MENOS as cartas de letra A.
+function resolverDuelo(a, b, attrKey, dir) {
+    const ehA = function (c) { return String(c.letra || '').toUpperCase() === 'A'; };
+    if (a.super || b.super) {
+        const sup = a.super ? 1 : 2;
+        const outra = a.super ? b : a;
+        if (ehA(outra)) return { venc: a.super ? 2 : 1, motivo: 'letra_a' };
+        return { venc: sup, motivo: 'super_trunfo' };
+    }
+    const va = a.stats[attrKey], vb = b.stats[attrKey];
+    if (va === vb) return { venc: 0, motivo: 'atributo' };
+    if (dir === 'low') return { venc: (va < vb) ? 1 : 2, motivo: 'atributo' };
+    return { venc: (va > vb) ? 1 : 2, motivo: 'atributo' };
+}
+
 function escolher(attrKey) {
     if (window.SOM) SOM.motor();
     const attr = ATTRS.find(function (a) { return a.key === attrKey; });
     const a = p1[0], b = p2[0];
-    const va = a.stats[attrKey], vb = b.stats[attrKey];
-    let venc; // 1, 2 ou 0 (empate)
-    if (va === vb) venc = 0;
-    else if (attr.dir === 'low') venc = (va < vb) ? 1 : 2;
-    else venc = (va > vb) ? 1 : 2;
+    const res = resolverDuelo(a, b, attrKey, attr.dir);
+    const venc = res.venc;
 
     // esconde a carta interativa e mostra a comparação
     document.getElementById('carta').classList.add('hidden');
@@ -247,7 +267,10 @@ function escolher(attrKey) {
         banner.textContent = '🤝 Empate! As cartas vão pro monte.';
         banner.className = 'text-center font-display font-bold text-lg py-3 rounded-2xl mb-3 bg-white/10 text-gray-200';
     } else {
-        banner.textContent = '🏁 Jogador ' + venc + ' venceu a rodada!';
+        let extra = '';
+        if (res.motivo === 'super_trunfo') extra = ' 👑 SUPER TRUNFO!';
+        else if (res.motivo === 'letra_a') extra = ' 🅰️ Carta A derrubou o Super Trunfo!';
+        banner.textContent = '🏁 Jogador ' + venc + ' venceu a rodada!' + extra;
         banner.className = 'text-center font-display font-bold text-lg py-3 rounded-2xl mb-3 bg-garage-ferrari/20 text-garage-ferrari border border-garage-ferrari/40';
     }
 

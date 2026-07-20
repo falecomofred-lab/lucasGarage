@@ -47,6 +47,8 @@ class Car:
     status: CarStatus = CarStatus.DRAFT
     velocidade: Optional[int] = None
     potencia: Optional[int] = None
+    letra: Optional[str] = None
+    super_trunfo: bool = False
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

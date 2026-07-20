@@ -114,6 +114,8 @@ class SQLAlchemyCarRepository(CarRepository):
             car_model.status = car.status
             car_model.velocidade = car.velocidade
             car_model.potencia = car.potencia
+            car_model.letra = car.letra
+            car_model.super_trunfo = car.super_trunfo
         else:
             # Create
             car_model = CarModel(
@@ -130,6 +132,8 @@ class SQLAlchemyCarRepository(CarRepository):
                 status=car.status,
                 velocidade=car.velocidade,
                 potencia=car.potencia,
+                letra=car.letra,
+                super_trunfo=car.super_trunfo,
             )
             self.session.add(car_model)
         self.session.commit()
@@ -209,6 +213,8 @@ class SQLAlchemyCarRepository(CarRepository):
             status=model.status,
             velocidade=getattr(model, "velocidade", None),
             potencia=getattr(model, "potencia", None),
+            letra=getattr(model, "letra", None),
+            super_trunfo=bool(getattr(model, "super_trunfo", False)),
             created_at=model.created_at,
             updated_at=model.updated_at,
         )

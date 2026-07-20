@@ -47,9 +47,16 @@ function cartaHTML(c, interativo, destaque, vencedora) {
             '<span class="text-xs font-bold">' + a.label + '</span><span class="font-display text-base font-bold ' + (hl ? 'text-garage-ferrari' : '') + '">' + val + '</span></div>';
     }).join('');
     const logo = c.logo ? '<div class="absolute bottom-2 left-2 w-8 h-8 rounded-full bg-white/95 flex items-center justify-center p-1"><img src="' + c.logo + '" class="max-w-full max-h-full object-contain" onerror="this.parentElement.style.display=\'none\'"></div>' : '';
-    const ring = vencedora ? 'ring-2 ring-garage-ferrari' : 'border border-white/10';
+    const ring = vencedora ? 'ring-2 ring-garage-ferrari' : (c.super ? 'border border-yellow-400/60' : 'border border-white/10');
+    const selo = c.super
+        ? '<div class="absolute top-1.5 right-1.5 z-20 px-2 py-0.5 rounded-full bg-yellow-400 text-black font-display font-bold text-[10px] shadow-lg">👑 TRUNFO</div>'
+        : (c.letra
+            ? '<div class="absolute top-1.5 right-1.5 z-20 w-7 h-7 rounded-full ' +
+              (String(c.letra).toUpperCase() === 'A' ? 'bg-garage-ferrari' : 'bg-black/70 border border-white/30') +
+              ' flex items-center justify-center font-display font-bold text-xs text-white shadow-lg">' + esc(c.letra) + '</div>'
+            : '');
     return '<div class="rounded-2xl overflow-hidden ' + ring + ' bg-garage-dark shadow-xl">' +
-        '<div class="relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite to-black overflow-hidden">' + fotoHTML(c) + logo +
+        '<div class="relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite to-black overflow-hidden">' + fotoHTML(c) + logo + selo +
         '<div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div></div>' +
         '<div class="p-3"><h3 class="font-display text-sm font-bold line-clamp-1">' + esc(c.name) + '</h3>' +
         '<p class="text-[10px] text-gray-400 uppercase tracking-wider mb-2">' + esc(c.mfr || '—') + '</p>' +
@@ -124,9 +131,12 @@ function render(s) {
     if (s.phase === 'reveal' && s.last) {
         const venc = s.last.winner;
         const nomeVenc = venc >= 0 ? (s.players[venc] ? s.players[venc].name : ('Jogador ' + (venc + 1))) : null;
+        let extra = '';
+        if (s.last.motivo === 'super_trunfo') extra = ' 👑 SUPER TRUNFO!';
+        else if (s.last.motivo === 'letra_a') extra = ' 🅰️ Carta A derrubou o Super Trunfo!';
         const banner = (venc < 0)
             ? '<div class="text-center font-display font-bold text-lg py-3 rounded-2xl mb-3 bg-white/10 text-gray-200">🤝 Empate! Cartas pro monte.</div>'
-            : '<div class="text-center font-display font-bold text-lg py-3 rounded-2xl mb-3 bg-garage-ferrari/20 text-garage-ferrari border border-garage-ferrari/40">🏁 ' + esc(nomeVenc) + ' venceu a rodada!</div>';
+            : '<div class="text-center font-display font-bold text-lg py-3 rounded-2xl mb-3 bg-garage-ferrari/20 text-garage-ferrari border border-garage-ferrari/40">🏁 ' + esc(nomeVenc) + ' venceu a rodada!' + extra + '</div>';
         const cards = s.last.plays.map(function (pl) {
             return '<div><p class="text-center text-[10px] text-gray-500 mb-1 uppercase tracking-widest">' + esc(pl.name) + '</p>' +
                 cartaHTML(pl.card, false, s.last.attr, pl.i === venc) + '</div>';
