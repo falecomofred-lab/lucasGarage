@@ -1,5 +1,16 @@
 # Sons do Lucas Garage
 
+> **Importante:** depois de colocar os .mp3 aqui, crie também o arquivo
+> `sons.json` nesta pasta listando só os que você baixou. Exemplo:
+>
+> ```json
+> ["toque", "vitoria", "curtir"]
+> ```
+>
+> Sem esse arquivo o app nem tenta baixar os sons (usa a síntese direto),
+> o que evita requisições inúteis em toda página.
+
+
 Coloque os arquivos **.mp3** nesta pasta com **exatamente estes nomes**.
 O app usa o arquivo automaticamente assim que ele existir. Se faltar algum,
 ele cai numa síntese limpa — nada quebra.

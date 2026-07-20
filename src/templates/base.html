@@ -808,17 +808,25 @@
             return true;
         }
 
-        /* Carrega os mp3 que existirem (silencioso se faltar) */
+        /* Carrega os mp3 SÓ se existir o manifesto /static/sounds/sons.json.
+           Sem ele, nem tenta — evita 8 requisições 404 em toda página. */
         function carregar() {
             if (carregou) return; carregou = true;
             const c = ac(); if (!c) return;
-            Object.keys(ARQUIVOS).forEach(function (nome) {
-                fetch(ARQUIVOS[nome])
-                    .then(function (r) { return r.ok ? r.arrayBuffer() : Promise.reject(); })
-                    .then(function (ab) { return c.decodeAudioData(ab); })
-                    .then(function (buf) { buffers[nome] = buf; })
-                    .catch(function () { /* sem arquivo: usa a síntese */ });
-            });
+            fetch('/static/sounds/sons.json')
+                .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+                .then(function (lista) {
+                    // lista = ["toque","vitoria",...] só com os que você baixou
+                    (lista || []).forEach(function (nome) {
+                        if (!ARQUIVOS[nome]) return;
+                        fetch(ARQUIVOS[nome])
+                            .then(function (r) { return r.ok ? r.arrayBuffer() : Promise.reject(); })
+                            .then(function (ab) { return c.decodeAudioData(ab); })
+                            .then(function (buf) { buffers[nome] = buf; })
+                            .catch(function () { });
+                    });
+                })
+                .catch(function () { /* sem manifesto: usa só a síntese */ });
         }
 
         /* ── Síntese limpa (fallback) ───────────────────────── */
