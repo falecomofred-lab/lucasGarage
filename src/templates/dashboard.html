@@ -77,6 +77,13 @@
         {% endif %}
     </header>
 
+    {% if erro %}
+    <div class="max-w-7xl mx-auto mb-4 p-4 rounded-2xl bg-red-500/15 border border-red-500/40 flex items-start gap-3">
+        <span class="text-xl leading-none">⚠️</span>
+        <p class="text-sm text-red-200">{{ erro }}</p>
+    </div>
+    {% endif %}
+
     <!-- BUSCA -->
     <div class="max-w-7xl mx-auto mb-4">
         <input type="text" id="busca-dash" oninput="aplicarFiltro()" placeholder="🔎 Buscar carro por nome..."

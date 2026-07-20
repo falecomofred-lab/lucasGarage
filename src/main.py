@@ -164,6 +164,7 @@ async def dashboard(request: Request, db=Depends(get_db)):
         cars=sorted(cars, key=lambda c: c.id or 0),
         mfr_map=mfr_map,
         proximo_id=proximo_id,
+        erro=request.query_params.get("erro", ""),
         total=total,
         published=published,
         drafts=drafts,
@@ -733,10 +734,12 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
             car.letra = letra
             car.super_trunfo = eh_super
         else:
-            # Criar novo
-            logger.info(f"Criando novo carro com id {car_id}")
+            # Criar novo — SEM id. O banco gera o número sozinho.
+            # (passar id aqui fazia o repositório tentar EDITAR uma linha
+            #  inexistente e estourar "Carro com id X não encontrado")
+            logger.info("Criando carro novo (id gerado pelo banco)")
             car = Car(
-                id=car_id,  # Usar car_id fornecido
+                id=None,
                 name=name,
                 manufacturer_id=manufacturer_id,
                 category_id=category_id,
@@ -753,15 +756,21 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
                 super_trunfo=eh_super,
             )
 
-        await repo.save(car)
-        logger.info(f"Carro {car.id} salvo com sucesso")
+        # save() devolve a entidade já com o id definitivo do banco
+        salvo = await repo.save(car)
+        novo_id = getattr(salvo, "id", None) or car.id or car_id
+        logger.info(f"Carro {novo_id} salvo com sucesso")
 
-        # Volta para a edição com confirmação de salvo
-        return RedirectResponse(url=f"/edit/{car.id}?saved=1", status_code=303)
+        # Vai para a edição do carro salvo (agora já dá para mandar as fotos)
+        return RedirectResponse(url=f"/edit/{novo_id}?saved=1", status_code=303)
 
     except Exception as e:
         logger.error(f"Erro ao salvar carro: {e}")
-        return RedirectResponse(url=f"/edit/{car_id}", status_code=303)
+        from urllib.parse import quote
+        return RedirectResponse(
+            url=f"/edit/{car_id}?erro={quote('Erro ao salvar: ' + str(e))}",
+            status_code=303,
+        )
 
 @app.post("/delete/{car_id}")
 async def delete_car_action(car_id: int, request: Request, db=Depends(get_db)):
