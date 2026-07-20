@@ -109,16 +109,18 @@
         <div onclick="location.href='/edit/{{ car.id }}'"
              data-mfr="{{ (mfr.name if mfr else 'Outros')|e }}"
              data-name="{{ car.name|e }}"
-             class="car-card group relative flex flex-col rounded-3xl overflow-hidden bg-garage-dark border border-white/5 cursor-pointer shadow-lg shadow-black/40 {% if rar == 'S' %}foil-s{% endif %}">
+             class="car-card card-3d group relative flex flex-col overflow-hidden cursor-pointer {% if rar == 'S' %}foil-s{% endif %}">
 
             <!-- ZONA DA IMAGEM (enquadramento uniforme 4:3) -->
             {% set imgs = (car.image_urls or []) | select | list %}
-            <div class="photo-frame js-slideshow relative w-full aspect-[4/3] bg-gradient-to-br from-garage-graphite via-garage-dark to-black overflow-hidden">
+            <div class="photo-frame js-slideshow relative w-full aspect-[4/3] overflow-hidden {% if imgs %}skeleton{% endif %}">
                 {% if imgs %}
                     {% for img in imgs %}
-                    <img src="{{ img }}" alt="{{ car.name }}" loading="lazy"
-                         class="slide card-photo absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 {% if loop.first %}is-active{% endif %}">
+                    <img src="{{ img }}" alt="{{ car.name }}" loading="lazy" decoding="async"
+                         onload="this.classList.add('carregada'); this.parentElement.classList.remove('skeleton')"
+                         class="slide card-photo card-photo-fade absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 {% if loop.first %}is-active{% endif %}">
                     {% endfor %}
+                    <div class="card-scrim"></div>
                 {% else %}
                     <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
                         <p class="font-display text-5xl font-bold text-white/20">1:32</p>
@@ -150,16 +152,19 @@
             <!-- PAINEL DE INFORMAÇÕES -->
             <div class="flex flex-col gap-3 p-4">
                 <div>
-                    <h3 class="font-display text-base font-bold text-white line-clamp-1">{{ car.name }}</h3>
-                    <p class="text-xs text-gray-400 uppercase tracking-wider line-clamp-1 mt-1">
-                        {{ mfr.name if mfr else '—' }} · {{ car.year or '—' }} · {{ car.color or 'sem cor' }}
+                    <h3 class="font-display text-base font-bold text-white line-clamp-1 leading-snug">{{ car.name }}</h3>
+                    <p class="text-[11px] txt-sec uppercase tracking-[0.12em] line-clamp-1 mt-1.5">
+                        {{ mfr.name if mfr else '—' }}
+                    </p>
+                    <p class="text-[11px] txt-ter line-clamp-1 mt-0.5 num">
+                        {{ car.year or '—' }} · {{ car.color or 'sem cor' }}
                     </p>
                 </div>
 
                 <!-- SCORE + RARIDADE -->
                 {% set rar = rarity_map.get(car.id, 'C') %}
                 <div class="flex items-center justify-between">
-                    <span class="text-garage-ferrari font-display font-bold text-sm">⚡ {{ score_map.get(car.id, 0) }} pts</span>
+                    <span class="text-garage-ferrari font-display font-bold text-sm num">⚡ {{ score_map.get(car.id, 0) }} pts</span>
                     <span class="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border
                         {% if rar == 'S' %}text-yellow-300 border-yellow-400/40 bg-yellow-400/10
                         {% elif rar == 'A' %}text-garage-ferrari border-garage-ferrari/40 bg-garage-ferrari/10

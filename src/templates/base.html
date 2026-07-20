@@ -2,7 +2,7 @@
 <html lang="pt-br" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}Lucas Garage{% endblock %}</title>
 
     <!-- PWA (instalável no celular) -->
@@ -414,7 +414,7 @@
         }
         .menu-item::after { display:none; }
         .menu-item:hover { background: rgba(255,40,0,.12); color:#fff; padding-left:22px; }
-        #menu-scrim { position:fixed; inset:0; z-index:30; background:rgba(0,0,0,.45);
+        #menu-scrim { position:fixed; inset:0; z-index:46; background:rgba(0,0,0,.45);
             opacity:0; visibility:hidden; transition: opacity .3s ease; }
         #menu-scrim.open { opacity:1; visibility:visible; }
 
@@ -448,6 +448,140 @@
         @media (prefers-reduced-motion: reduce) {
             .venure-fx { animation:none; }
             .venure-fx:hover::before { animation:none; }
+        }
+
+        /* ══════════════════════════════════════════════════
+           BASE iPHONE / MOBILE-FIRST
+           ══════════════════════════════════════════════════ */
+        :root {
+            --safe-t: env(safe-area-inset-top, 0px);
+            --safe-b: env(safe-area-inset-bottom, 0px);
+            --safe-l: env(safe-area-inset-left, 0px);
+            --safe-r: env(safe-area-inset-right, 0px);
+        }
+        /* 100dvh: no Safari o 100vh fica escondido atrás da barra do navegador */
+        body { min-height: 100dvh; }
+        /* Notch / Dynamic Island: nav e footer respeitam a área segura */
+        nav.sticky { padding-top: calc(0.75rem + var(--safe-t)); }
+        footer { padding-bottom: calc(1.5rem + var(--safe-b)); }
+        #menu-panel { padding-top: calc(70px + var(--safe-t)); }
+        /* respiro lateral só no iPhone DEITADO (em pé o inset é 0).
+           max() garante que nunca fique menor que o padding original. */
+        @media (orientation: landscape) {
+            nav.sticky, main, footer {
+                padding-left: max(1rem, var(--safe-l));
+                padding-right: max(1rem, var(--safe-r));
+            }
+        }
+
+        /* iOS dá ZOOM sozinho em input com fonte < 16px (só em telas de toque) */
+        @media (pointer: coarse) {
+            input, select, textarea { font-size: 16px !important; }
+        }
+        /* Tira o flash cinza do toque e melhora o scroll */
+        * { -webkit-tap-highlight-color: transparent; }
+        body { -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+        /* Alvo de toque mínimo da Apple (44px) */
+        @media (pointer: coarse) {
+            button, a[href], select, .menu-item { min-height: 44px; }
+            .filtro-btn { min-height: 40px; }
+        }
+        /* Números que não "dançam" ao trocar de carta */
+        .num, .font-display { font-variant-numeric: tabular-nums; }
+
+        /* ══════════════════════════════════════════════════
+           CARD COM PROFUNDIDADE
+           ══════════════════════════════════════════════════ */
+        .card-3d {
+            position: relative;
+            background: linear-gradient(180deg, #1c1c1c 0%, #121212 100%);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 22px;
+            /* sombra em CAMADAS = sensação de peso */
+            box-shadow:
+                0 1px 2px rgba(0,0,0,.5),
+                0 4px 10px rgba(0,0,0,.45),
+                0 14px 30px rgba(0,0,0,.4),
+                inset 0 1px 0 rgba(255,255,255,.07);
+            transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease, border-color .35s ease;
+        }
+        /* linha de luz no topo = borda de vidro */
+        .card-3d::before {
+            content:''; position:absolute; top:0; left:14%; right:14%; height:1px; z-index:5;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+            pointer-events:none;
+        }
+        .card-3d:hover {
+            border-color: rgba(255,40,0,.45);
+            box-shadow:
+                0 2px 4px rgba(0,0,0,.5),
+                0 10px 22px rgba(0,0,0,.5),
+                0 26px 55px rgba(0,0,0,.55),
+                0 0 34px rgba(255,40,0,.28),
+                inset 0 1px 0 rgba(255,255,255,.12);
+        }
+        /* scrim: garante o nome legível sobre QUALQUER foto */
+        .card-scrim {
+            position:absolute; inset:auto 0 0 0; height:62%; z-index:2; pointer-events:none;
+            background: linear-gradient(to top, rgba(0,0,0,.92) 0%, rgba(0,0,0,.55) 45%, transparent 100%);
+        }
+        /* skeleton enquanto a foto carrega */
+        .skeleton {
+            background: linear-gradient(100deg, #1a1a1a 30%, #262626 50%, #1a1a1a 70%);
+            background-size: 220% 100%;
+            animation: skeleton 1.3s linear infinite;
+        }
+        @keyframes skeleton { 0%{background-position:150% 0} 100%{background-position:-50% 0} }
+        .card-photo-fade { opacity:0; transition: opacity .45s ease; }
+        .card-photo-fade.carregada { opacity:1; }
+
+        /* selo do código da carta (A3, B7) */
+        .selo-letra {
+            position:absolute; top:10px; left:10px; z-index:6;
+            min-width:34px; height:26px; padding:0 8px;
+            display:flex; align-items:center; justify-content:center;
+            border-radius:8px; font-family:'Orbitron',sans-serif; font-weight:700; font-size:11px;
+            background: rgba(0,0,0,.65); border:1px solid rgba(255,255,255,.25);
+            backdrop-filter: blur(6px); color:#fff; letter-spacing:.05em;
+        }
+        .selo-letra.letra-a { background: var(--ferrari, #ff2800); border-color: rgba(255,255,255,.5); }
+
+        /* leitura: cinzas mais claros = passa no contraste */
+        .txt-sec { color:#a3a3a3; }
+        .txt-ter { color:#8a8a8a; }
+
+        /* ══════════════════════════════════════════════════
+           BARRA DE NAVEGAÇÃO INFERIOR (zona do polegar)
+           ══════════════════════════════════════════════════ */
+        #tabbar { display: none; }
+        @media (max-width: 767px) {
+            #tabbar {
+                display: flex;
+                position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+                padding-bottom: var(--safe-b);
+                background: rgba(12,12,12,.92);
+                backdrop-filter: blur(16px);
+                border-top: 1px solid rgba(255,255,255,.08);
+                box-shadow: 0 -8px 24px rgba(0,0,0,.5);
+            }
+            #tabbar a {
+                flex: 1; min-height: 56px;
+                display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+                font-size: 10px; font-weight: 700; letter-spacing: .06em;
+                color: #8a8a8a; text-transform: uppercase;
+                transition: color .2s ease, transform .2s ease;
+                position: relative;
+            }
+            #tabbar a .ic { font-size: 19px; line-height: 1; }
+            #tabbar a.ativo { color: #ff2800; }
+            #tabbar a.ativo::before {
+                content: ''; position: absolute; top: 0; left: 22%; right: 22%; height: 2px;
+                background: #ff2800; border-radius: 0 0 3px 3px; box-shadow: 0 0 10px rgba(255,40,0,.8);
+            }
+            #tabbar a:active { transform: scale(.92); }
+            /* espaço para o conteúdo não ficar embaixo da barra */
+            body { padding-bottom: calc(56px + var(--safe-b)); }
+            footer { padding-bottom: calc(1.5rem + var(--safe-b)); }
         }
     </style>
 </head>
@@ -501,7 +635,7 @@
     </nav>
 
     <!-- PAINEL DO MENU (recuado) -->
-    <div id="menu-panel" class="fixed top-0 right-0 z-40">
+    <div id="menu-panel" class="fixed top-0 right-0 z-[47]">
         <nav class="menu-inner">
             <a href="/" class="menu-item nav-link">INÍCIO</a>
             <a href="/vitrine" class="menu-item nav-link">VITRINE</a>
@@ -516,6 +650,14 @@
     <main class="flex-1 w-full">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- BARRA INFERIOR (só mobile — zona do polegar) -->
+    <nav id="tabbar" aria-label="Navegação principal">
+        <a href="/" data-rota="/"><span class="ic">🏠</span><span>Garagem</span></a>
+        <a href="/vitrine" data-rota="/vitrine"><span class="ic">✨</span><span>Vitrine</span></a>
+        <a href="/super-trunfo" data-rota="/super-trunfo"><span class="ic">🃏</span><span>Trunfo</span></a>
+        <a href="/quiz" data-rota="/quiz"><span class="ic">🎯</span><span>Quiz</span></a>
+    </nav>
 
     <!-- FOOTER -->
     <footer class="border-t border-white/5 py-6 px-6 bg-garage-dark/30">
@@ -636,6 +778,19 @@
         var on = SOM.toggle(); var i = document.getElementById('som-ico');
         if (i) i.textContent = on ? '🔊' : '🔇';
     }
+
+    /* ── Barra inferior: marca a aba da página atual ── */
+    (function () {
+        var p = location.pathname;
+        var atual = '/';
+        if (p.indexOf('/vitrine') === 0) atual = '/vitrine';
+        else if (p.indexOf('/super-trunfo') === 0 || p.indexOf('/jogo/') === 0) atual = '/super-trunfo';
+        else if (p.indexOf('/quiz') === 0) atual = '/quiz';
+        document.querySelectorAll('#tabbar a').forEach(function (a) {
+            if (a.dataset.rota === atual) a.classList.add('ativo');
+            a.addEventListener('click', function () { try { SOM.marcha(); } catch (e) {} });
+        });
+    })();
     </script>
 
     <!-- SLIDESHOW: troca as fotos de cada card a cada 5 segundos, em loop -->
