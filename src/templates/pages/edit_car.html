@@ -120,6 +120,8 @@
         {% endif %}
 
         <form method="POST" id="car-form" class="space-y-6 p-6 bg-garage-dark rounded-2xl border border-white/10">
+            {# marca que este formulário abriu sobre um carro QUE JÁ EXISTIA #}
+            <input type="hidden" name="editando" value="{{ '1' if has_car else '0' }}">
             <h3 class="font-display font-bold text-lg border-b border-white/10 pb-4">📋 Ficha Técnica Completa</h3>
 
             <!-- Nome -->

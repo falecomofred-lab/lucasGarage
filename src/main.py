@@ -154,10 +154,16 @@ async def dashboard(request: Request, db=Depends(get_db)):
     ]
 
     template = jinja_env.get_template("dashboard.html")
+    # Próximo ID livre = MAIOR id + 1.
+    # (usar "quantidade + 1" colide com carros existentes quando algum é
+    #  apagado — e o salvar SOBRESCREVERIA o carro daquele id)
+    proximo_id = (max((c.id or 0) for c in cars) + 1) if cars else 1
+
     html = template.render(
         request=request,
         cars=sorted(cars, key=lambda c: c.id or 0),
         mfr_map=mfr_map,
+        proximo_id=proximo_id,
         total=total,
         published=published,
         drafts=drafts,
@@ -619,6 +625,14 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
         repo = SQLAlchemyCarRepository(db)
 
         car = await repo.get_by_id(car_id)
+
+        # Trava contra PERDA DE DADOS: se a tela abriu como carro NOVO mas
+        # esse id já existe, salvar sobrescreveria um carro do Lucas.
+        if car and form.get("editando", "1") == "0":
+            from urllib.parse import quote
+            logger.error(f"Bloqueado: tentativa de sobrescrever o carro {car_id}")
+            aviso = quote("Essa carta já estava ocupada. Clique em Novo Carro de novo.")
+            return RedirectResponse(url=f"/?erro={aviso}", status_code=303)
 
         # Validações básicas
         def _volta(motivo: str):
