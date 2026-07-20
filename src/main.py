@@ -526,6 +526,60 @@ def _nome_montadora_do_carro(car, manufacturers):
     return m.name if m else ""
 
 
+@app.get("/edit/new")
+async def new_car_page(request: Request, db=Depends(get_db)):
+    """Abre um formulário vazio para criar um novo carro (sem salvar ainda)."""
+    guard = _needs_login(request)
+    if guard:
+        return guard
+    from src.infra.repositories import SQLAlchemyManufacturerRepository, SQLAlchemyCategoryRepository
+
+    mfr_repo = SQLAlchemyManufacturerRepository(db)
+    cat_repo = SQLAlchemyCategoryRepository(db)
+
+    manufacturers = await mfr_repo.get_all()
+    categories = await cat_repo.get_all()
+
+    # Logo garantida para todas as montadoras
+    for m in manufacturers:
+        m.logo_url = get_logo_url(m.name, m.logo_url)
+
+    # Mapa id -> logo_url para troca dinâmica no front
+    logo_map = {m.id: (m.logo_url or "") for m in manufacturers}
+
+    # Carro vazio (não salvo no banco ainda)
+    car = None
+    has_car = False
+
+    # Valores padrão para novo carro
+    from src.utils.generators import LETRAS
+    auto = {"velocidade": 60, "potencia": 60}
+
+    template = jinja_env.get_template("pages/edit_car.html")
+    html = template.render(
+        request=request,
+        car=car,
+        manufacturers=manufacturers,
+        categories=categories,
+        manufacturer_logo=None,
+        manufacturer_name=None,
+        logo_map=logo_map,
+        current_index=0,
+        total_cars=0,
+        next_car_id=None,
+        has_car=has_car,
+        saved=False,
+        qrcode=None,
+        auto_vel=auto["velocidade"],
+        auto_pot=auto["potencia"],
+        letras=LETRAS,
+        todas_marcas=_TODAS_MARCAS,
+        montadora_atual="",
+        erro=request.query_params.get("erro", ""),
+    )
+    return HTMLResponse(content=html)
+
+
 @app.get("/edit/{car_id}")
 async def edit_car_page(car_id: int, request: Request, db=Depends(get_db)):
     guard = _needs_login(request)
@@ -601,6 +655,130 @@ async def edit_car_page(car_id: int, request: Request, db=Depends(get_db)):
         erro=request.query_params.get("erro", ""),
     )
     return HTMLResponse(content=html)
+
+@app.post("/edit/new")
+async def create_new_car(request: Request, db=Depends(get_db)):
+    """Cria um novo carro e redireciona para a página de edição."""
+    from src.core.entities import CarClass, CarStatus, Car
+    from fastapi.responses import RedirectResponse
+    import logging
+
+    guard = _needs_login(request)
+    if guard:
+        return guard
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        form = await request.form()
+        repo = SQLAlchemyCarRepository(db)
+
+        # Validações básicas (mesmo as de /edit/{car_id})
+        def _volta(motivo: str):
+            from urllib.parse import quote
+            return RedirectResponse(url=f"/edit/new?erro={quote(motivo)}", status_code=303)
+
+        name = form.get("name", "").strip()
+        if not name:
+            return _volta("Preencha o nome do carro.")
+
+        manufacturer_id_str = form.get("manufacturer_id", "").strip()
+        category_id_str = form.get("category_id", "").strip()
+        year_str = form.get("year", "").strip()
+        class_str = form.get("class_", "").strip()
+
+        # Montadora vem por NOME (campo com as 387 marcas + digitação livre)
+        marca_nome = (form.get("montadora_nome", "") or "").strip()
+        if marca_nome:
+            from src.infra.database import ManufacturerModel
+            existente = db.query(ManufacturerModel).filter(
+                ManufacturerModel.name.ilike(marca_nome)
+            ).first()
+            if existente:
+                manufacturer_id_str = str(existente.id)
+            else:
+                nova = ManufacturerModel(name=marca_nome)
+                db.add(nova)
+                db.commit()
+                db.refresh(nova)
+                manufacturer_id_str = str(nova.id)
+                logger.info(f"Montadora criada: {marca_nome} (id {nova.id})")
+
+        # Diz exatamente qual campo faltou
+        if not manufacturer_id_str:
+            return _volta("Escolha ou digite a montadora.")
+        if not category_id_str:
+            return _volta("Escolha a categoria.")
+        if not year_str:
+            return _volta("Preencha o ano.")
+        if not class_str:
+            return _volta("Escolha a classe do carro.")
+
+        try:
+            manufacturer_id = int(manufacturer_id_str)
+            category_id = int(category_id_str)
+            year = int(year_str)
+        except ValueError as e:
+            logger.error(f"Erro ao converter valores numéricos: {e}")
+            return _volta("Ano inválido — use só números (ex: 1987).")
+
+        # Validar classe
+        try:
+            class_enum = CarClass(class_str)
+        except ValueError:
+            return _volta("Classe do carro inválida.")
+
+        # Atributos de batalha (opcionais); vazio = automático
+        def _atr(v):
+            v = (v or "").strip()
+            try:
+                n = int(v)
+                return max(1, min(99, n)) if n else None
+            except ValueError:
+                return None
+        vel = _atr(form.get("velocidade"))
+        pot = _atr(form.get("potencia"))
+
+        # Letra do baralho (A, B, C...) e carta Super Trunfo
+        from src.utils.generators import LETRAS
+        letra = (form.get("letra") or "").strip().upper()
+        letra = letra if letra in LETRAS else None
+        eh_super = form.get("super_trunfo") in ("1", "on", "true")
+
+        # Só pode existir UMA carta Super Trunfo: desmarca as outras
+        if eh_super:
+            from src.infra.database import CarModel
+            db.query(CarModel).filter(CarModel.id != None).update({"super_trunfo": False})
+            db.commit()
+
+        # Criar novo carro (sem ID específico - banco gera automaticamente)
+        new_car = Car(
+            name=name,
+            manufacturer_id=manufacturer_id,
+            category_id=category_id,
+            year=year,
+            color=form.get("color", "").strip(),
+            class_=class_enum,
+            scale=form.get("scale", "1:32").strip(),
+            description=form.get("description", "").strip() or None,
+            trivia=form.get("trivia", "").strip() or None,
+            status=CarStatus(form.get("status", "draft")),
+            velocidade=vel,
+            potencia=pot,
+            letra=letra,
+            super_trunfo=eh_super,
+        )
+
+        saved_car = await repo.save(new_car)
+        logger.info(f"Novo carro criado com id {saved_car.id}")
+
+        # Redireciona para a página de edição do novo carro com confirmação
+        return RedirectResponse(url=f"/edit/{saved_car.id}?saved=1", status_code=303)
+
+    except Exception as e:
+        logger.error(f"Erro ao criar novo carro: {e}")
+        return RedirectResponse(url="/edit/new", status_code=303)
+
 
 @app.post("/edit/{car_id}")
 async def save_car(car_id: int, request: Request, db=Depends(get_db)):
