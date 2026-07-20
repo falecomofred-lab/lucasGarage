@@ -454,7 +454,7 @@ function virarCarta(btn) {
     const card = btn.closest('.flip');
     if (!card) return;
     card.classList.toggle('virada');
-    if (window.SOM) SOM.marcha();
+    if (window.SOM) SOM.virar();
 }
 
 // ══════ COMENTÁRIOS ══════
