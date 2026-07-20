@@ -109,6 +109,16 @@
         {% endif %}
 
         <!-- ═══════════ FICHA TÉCNICA (FORMULÁRIO PRINCIPAL) ═══════════ -->
+        {% if erro %}
+        <div class="mb-4 p-4 rounded-2xl bg-red-500/15 border border-red-500/40 flex items-start gap-3">
+            <span class="text-xl leading-none">⚠️</span>
+            <div>
+                <p class="font-bold text-red-300 text-sm">Não deu para salvar</p>
+                <p class="text-sm text-red-200 mt-0.5">{{ erro }}</p>
+            </div>
+        </div>
+        {% endif %}
+
         <form method="POST" id="car-form" class="space-y-6 p-6 bg-garage-dark rounded-2xl border border-white/10">
             <h3 class="font-display font-bold text-lg border-b border-white/10 pb-4">📋 Ficha Técnica Completa</h3>
 
@@ -372,7 +382,7 @@ document.addEventListener('DOMContentLoaded', marcaDigitada);
 
 // Validação: a marca não pode ficar vazia
 document.addEventListener('DOMContentLoaded', function () {
-    const form = document.querySelector('form[method="POST"]');
+    const form = document.getElementById('car-form');   // era o form de FOTOS antes
     if (!form) return;
     form.addEventListener('submit', function (e) {
         const txt = document.getElementById('montadora_nome');
@@ -380,6 +390,12 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             alert('Digite ou escolha a montadora.');
             txt.focus();
+            return;
+        }
+        // classe é obrigatória no servidor: avisa aqui antes de perder o preenchimento
+        if (!document.querySelector('input[name="class_"]:checked')) {
+            e.preventDefault();
+            alert('Escolha a classe do carro (esportivo, clássico, etc).');
         }
     });
 });

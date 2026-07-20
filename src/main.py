@@ -598,6 +598,7 @@ async def edit_car_page(car_id: int, request: Request, db=Depends(get_db)):
         letras=LETRAS,
         todas_marcas=_TODAS_MARCAS,
         montadora_atual=_nome_montadora_do_carro(car, manufacturers),
+        erro=request.query_params.get("erro", ""),
     )
     return HTMLResponse(content=html)
 
@@ -620,10 +621,15 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
         car = await repo.get_by_id(car_id)
 
         # Validações básicas
+        def _volta(motivo: str):
+            """Volta ao formulário DIZENDO o que faltou (antes falhava calado)."""
+            logger.warning(f"Salvar carro {car_id} bloqueado: {motivo}")
+            from urllib.parse import quote
+            return RedirectResponse(url=f"/edit/{car_id}?erro={quote(motivo)}", status_code=303)
+
         name = form.get("name", "").strip()
         if not name:
-            logger.warning("Campo 'name' vazio")
-            return RedirectResponse(url=f"/edit/{car_id}", status_code=303)
+            return _volta("Preencha o nome do carro.")
 
         manufacturer_id_str = form.get("manufacturer_id", "").strip()
         category_id_str = form.get("category_id", "").strip()
@@ -648,9 +654,15 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
                 manufacturer_id_str = str(nova.id)
                 logger.info(f"Montadora criada: {marca_nome} (id {nova.id})")
 
-        if not all([manufacturer_id_str, category_id_str, year_str, class_str]):
-            logger.warning("Campos obrigatórios vazios")
-            return RedirectResponse(url=f"/edit/{car_id}", status_code=303)
+        # Diz exatamente qual campo faltou
+        if not manufacturer_id_str:
+            return _volta("Escolha ou digite a montadora.")
+        if not category_id_str:
+            return _volta("Escolha a categoria.")
+        if not year_str:
+            return _volta("Preencha o ano.")
+        if not class_str:
+            return _volta("Escolha a classe do carro.")
 
         try:
             manufacturer_id = int(manufacturer_id_str)
@@ -658,14 +670,13 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
             year = int(year_str)
         except ValueError as e:
             logger.error(f"Erro ao converter valores numéricos: {e}")
-            return RedirectResponse(url=f"/edit/{car_id}", status_code=303)
+            return _volta("Ano inválido — use só números (ex: 1987).")
 
         # Validar classe
         try:
             class_enum = CarClass(class_str)
         except ValueError:
-            logger.error(f"Classe inválida: {class_str}")
-            return RedirectResponse(url=f"/edit/{car_id}", status_code=303)
+            return _volta("Classe do carro inválida.")
 
         # Atributos de batalha (opcionais); vazio = automático
         def _atr(v):
