@@ -21,8 +21,25 @@ ele cai numa síntese limpa — nada quebra.
 - **Mixkit** — mixkit.co/free-sound-effects (grátis, uso comercial permitido)
 - **Freesound** — freesound.org (confira a licença de CADA som; prefira os marcados **CC0**)
 
-Termos que funcionam bem na busca: `ui click soft`, `card flip`, `whoosh swipe`,
-`success chime`, `fail sound`, `engine start`, `game win`.
+## Estilo escolhido: iOS (discreto e limpo)
+
+A síntese já está calibrada nesse padrão, então **você só precisa baixar se
+quiser refinar ainda mais**. Se for baixar, busque por estes termos:
+
+| Arquivo       | Buscar por                                      |
+|---------------|-------------------------------------------------|
+| `toque.mp3`   | `ios ui tap`, `soft click ui`, `bubble pop ui`  |
+| `virar.mp3`   | `card flip subtle`, `soft swipe whoosh`         |
+| `curtir.mp3`  | `ios notification`, `success chime soft`        |
+| `motor.mp3`   | `soft transition whoosh`, `ui swoosh`           |
+| `intro.mp3`   | `app startup chime`, `soft welcome sound`       |
+| `vitoria.mp3` | `apple pay success`, `positive chime bell`      |
+| `derrota.mp3` | `soft error tone`, `gentle fail ui`             |
+| `empate.mp3`  | `neutral notification`, `single soft bell`      |
+
+**Regra de ouro do estilo iOS:** se o som chamar atenção, está alto demais.
+Ele tem que ser percebido, não escutado. Prefira sempre arquivos curtos
+(abaixo de 0,5s para interface) e agudos.
 
 ## Cuidados
 

@@ -756,18 +756,19 @@
             intro:   '/static/sounds/intro.mp3',
         };
 
-        function off() { return localStorage.getItem('som_on') !== '1'; }
+        /* Som LIGADO por padrão. Só fica mudo se a pessoa desligar no menu. */
+        function off() { return localStorage.getItem('som_on') === '0'; }
 
         function ac() {
             if (!ctx) {
                 try {
                     ctx = new (window.AudioContext || window.webkitAudioContext)();
                     master = ctx.createGain();
-                    master.gain.value = 0.55;          // headroom: nada estourado
+                    master.gain.value = 0.38;          // iOS é DISCRETO, nunca alto
                     master.connect(ctx.destination);
                     reverb = ctx.createConvolver();
-                    reverb.buffer = impulso(1.6, 2.4); // sala pequena, dá "ar"
-                    const wet = ctx.createGain(); wet.gain.value = 0.16;
+                    reverb.buffer = impulso(1.1, 3.2); // curto e seco: só um "ar"
+                    const wet = ctx.createGain(); wet.gain.value = 0.09;
                     reverb.connect(wet).connect(master);
                     reverb._wet = wet;
                 } catch (e) { return null; }
@@ -880,44 +881,59 @@
             toggle() {
                 const ligando = off();
                 localStorage.setItem('som_on', ligando ? '1' : '0');
-                if (ligando) { carregar(); _toque(880, 0.18, true); }
+                if (ligando) { carregar(); _nota(1318.51, 0, 0.45, 0.055); _nota(1975.53, 0.07, 0.55, 0.045); }
                 return !off();
             },
             isOn() { return !off(); },
             precarregar() { if (!off()) carregar(); },
 
-            // toque leve de interface
-            clique() { if (off()) return; if (!tocarArquivo('toque', .7)) _toque(920, 0.16, true); },
-            marcha() { if (off()) return; if (!tocarArquivo('toque', .5)) _toque(660, 0.12, false); },
-            // virar carta / deslizar
-            virar()  { if (off()) return; if (!tocarArquivo('virar', .8)) _whoosh(0.28, 0.16, false); },
-            curtir() { if (off()) return; if (!tocarArquivo('curtir', .8)) { _toque(1046, 0.14, true); _nota(1568, 0.06, 0.5, 0.09); } },
-            // motor (só fica bom mesmo com arquivo real)
+            /* ── Paleta iOS: curto, agudo, discreto ── */
+
+            // toque de tecla: bem curto e baixo, quase um "tique"
+            clique() { if (off()) return; if (!tocarArquivo('toque', .6)) _toque(1500, 0.055, true); },
+            // navegação: ainda mais sutil
+            marcha() { if (off()) return; if (!tocarArquivo('toque', .4)) _toque(1150, 0.035, false); },
+            // virar carta: sopro leve, quase imperceptível
+            virar()  { if (off()) return; if (!tocarArquivo('virar', .6)) _whoosh(0.22, 0.05, false); },
+            // curtir: dois sinos subindo (estilo confirmação da Apple)
+            curtir() {
+                if (off()) return;
+                if (tocarArquivo('curtir', .7)) return;
+                _nota(1318.51, 0,    0.5, 0.055);   // Mi6
+                _nota(1975.53, 0.07, 0.6, 0.045);   // Si6
+            },
+            // início de partida: sopro curtinho, sem motor
             motor() {
                 if (off()) return;
-                if (tocarArquivo('motor', .8)) return;
-                _whoosh(0.5, 0.13, true);
+                if (tocarArquivo('motor', .6)) return;
+                _whoosh(0.3, 0.05, true);
             },
+            // vitória: três sinos subindo, limpo e com cauda
             vitoria() {
                 if (off()) return;
-                if (tocarArquivo('vitoria', .9)) return;
-                [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) { _nota(f, i * 0.09, 1.1, 0.16); });
+                if (tocarArquivo('vitoria', .8)) return;
+                [1046.5, 1318.51, 1567.98].forEach(function (f, i) { _nota(f, i * 0.085, 0.95, 0.06); });
             },
+            // derrota: dois sinos descendo, suave (nunca agressivo)
             derrota() {
                 if (off()) return;
-                if (tocarArquivo('derrota', .85)) return;
-                [440, 349.23, 261.63].forEach(function (f, i) { _nota(f, i * 0.14, 0.9, 0.14); });
+                if (tocarArquivo('derrota', .75)) return;
+                _nota(783.99, 0,    0.7, 0.055);
+                _nota(587.33, 0.11, 0.85, 0.05);
             },
+            // empate: nota única neutra
             empate() {
                 if (off()) return;
-                if (tocarArquivo('empate', .85)) return;
-                _nota(587.33, 0, 0.7, 0.14); _nota(587.33, 0.18, 0.8, 0.12);
+                if (tocarArquivo('empate', .75)) return;
+                _nota(880, 0, 0.65, 0.05);
             },
+            // abertura: sopro + dois sinos (discreto, não fanfarra)
             intro() {
                 if (off()) return;
-                if (tocarArquivo('intro', .9)) return;
-                _whoosh(0.42, 0.12, true);
-                [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) { _nota(f, 0.3 + i * 0.07, 1.3, 0.15); });
+                if (tocarArquivo('intro', .8)) return;
+                _whoosh(0.35, 0.045, true);
+                _nota(1046.5, 0.26, 1.0, 0.06);
+                _nota(1567.98, 0.35, 1.2, 0.05);
             },
         };
     })();
