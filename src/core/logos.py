@@ -51,6 +51,44 @@ SLUGS = {
     "Rolls-Royce": "rolls-royce",
     "Koenigsegg": "koenigsegg",
     "Pagani": "pagani",
+
+    # ── Americanas ──
+    "Cadillac": "cadillac", "Chrysler": "chrysler", "Buick": "buick",
+    "Pontiac": "pontiac", "GMC": "gmc", "Lincoln": "lincoln",
+    "Tesla": "tesla", "RAM": "ram", "Ram": "ram", "Rivian": "rivian",
+    "Plymouth": "plymouth", "Oldsmobile": "oldsmobile", "Mercury": "mercury",
+    "Saturn": "saturn", "Eagle": "eagle", "AMC": "amc", "Studebaker": "studebaker",
+    "Hudson": "hudson", "Packard": "packard", "DeSoto": "desoto",
+    "Shelby": "ford", "Saleen": "saleen", "Hennessey": "hennessey",
+    "Panoz": "panoz", "Vector": "vector", "Fisker": "fisker",
+
+    # ── Europeias ──
+    "Opel": "opel", "Seat": "seat", "SEAT": "seat", "Skoda": "skoda", "Škoda": "skoda",
+    "Lancia": "lancia", "Maybach": "maybach", "Smart": "smart", "Dacia": "dacia",
+    "Saab": "saab", "Polestar": "polestar", "Alpine": "alpine", "Abarth": "abarth",
+    "Lotus": "lotus", "Morgan": "morgan", "Caterham": "caterham", "Noble": "noble",
+    "TVR": "tvr", "Vauxhall": "vauxhall", "Spyker": "spyker", "Wiesmann": "wiesmann",
+    "Bristol": "bristol", "De Tomaso": "de-tomaso", "Iso": "iso",
+    "Bizzarrini": "bizzarrini", "Facel Vega": "facel-vega", "Venturi": "venturi",
+    "Ginetta": "ginetta", "Marcos": "marcos", "Jensen": "jensen", "Ariel": "ariel",
+    "Radical": "radical", "Austin": "austin", "Morris": "morris",
+    "Triumph": "triumph", "MG": "mg", "Riley": "riley", "Hillman": "hillman",
+    "Simca": "simca", "Talbot": "talbot",
+
+    # ── Asiáticas ──
+    "Mazda": "mazda", "Acura": "acura", "Infiniti": "infiniti", "Genesis": "genesis",
+    "Datsun": "datsun", "Daihatsu": "daihatsu", "Isuzu": "isuzu",
+    "SsangYong": "ssangyong", "Tata": "tata", "Chery": "chery", "BYD": "byd",
+    "Geely": "geely", "Great Wall": "great-wall", "Scion": "scion",
+    "Holden": "holden", "Troller": "troller",
+
+    # ── Apelidos e grafias que o Lucas pode escrever ──
+    "Cadilaque": "cadillac", "Cadilac": "cadillac", "Caddy": "cadillac",
+    "Chevy": "chevrolet", "GM": "chevrolet", "VW": "volkswagen",
+    "Volks": "volkswagen", "Merc": "mercedes-benz", "Beemer": "bmw",
+    "Rolls Royce": "rolls-royce", "Alfa": "alfa-romeo", "Citroen": "citroen",
+    "Land-Rover": "land-rover", "Range Rover": "land-rover",
+    "Astom Martin": "aston-martin", "Lambo": "lamborghini",
 }
 
 

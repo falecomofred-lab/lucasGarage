@@ -617,6 +617,23 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
         year_str = form.get("year", "").strip()
         class_str = form.get("class_", "").strip()
 
+        # Marca nova digitada pelo Lucas: cria (ou reaproveita) e usa ela
+        nova_marca = (form.get("nova_montadora", "") or "").strip()
+        if nova_marca:
+            from src.infra.database import ManufacturerModel
+            existente = db.query(ManufacturerModel).filter(
+                ManufacturerModel.name.ilike(nova_marca)
+            ).first()
+            if existente:
+                manufacturer_id_str = str(existente.id)
+            else:
+                nova = ManufacturerModel(name=nova_marca)
+                db.add(nova)
+                db.commit()
+                db.refresh(nova)
+                manufacturer_id_str = str(nova.id)
+                logger.info(f"Montadora criada: {nova_marca} (id {nova.id})")
+
         if not all([manufacturer_id_str, category_id_str, year_str, class_str]):
             logger.warning("Campos obrigatórios vazios")
             return RedirectResponse(url=f"/edit/{car_id}", status_code=303)
