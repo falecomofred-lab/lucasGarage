@@ -89,6 +89,48 @@ async def do_login(request: Request):
     return RedirectResponse(url="/login?erro=1", status_code=303)
 
 
+@app.get("/backup/db")
+async def baixar_banco(request: Request):
+    """
+    Baixa o banco de dados ATUAL pelo navegador (protegido pela senha do painel).
+
+    Usa o backup nativo do SQLite, então o arquivo sai íntegro mesmo que
+    alguém esteja usando o app no momento — não é uma cópia "no meio da escrita".
+    """
+    guard = _needs_login(request)
+    if guard:
+        return guard
+
+    import sqlite3
+    import tempfile
+    import datetime as _dt
+    from fastapi.responses import FileResponse
+
+    from src.core.config import DATA_DIR
+    origem = DATA_DIR / "lucas_garage.db"
+    if not origem.exists():
+        return JSONResponse({"error": "Banco não encontrado."}, status_code=404)
+
+    carimbo = _dt.datetime.now().strftime("%Y%m%d_%H%M")
+    destino = Path(tempfile.gettempdir()) / f"lucas_garage_{carimbo}.db"
+
+    try:
+        con_o = sqlite3.connect(str(origem))
+        con_d = sqlite3.connect(str(destino))
+        with con_d:
+            con_o.backup(con_d)      # snapshot consistente
+        con_o.close()
+        con_d.close()
+    except Exception as e:
+        return JSONResponse({"error": f"Falha ao copiar o banco: {e}"}, status_code=500)
+
+    return FileResponse(
+        path=str(destino),
+        filename=f"lucas_garage_{carimbo}.db",
+        media_type="application/octet-stream",
+    )
+
+
 @app.get("/logout")
 async def logout():
     resp = RedirectResponse(url="/login", status_code=303)
