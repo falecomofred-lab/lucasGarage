@@ -131,6 +131,58 @@ async def baixar_banco(request: Request):
     )
 
 
+@app.get("/backup/tudo.zip")
+async def baixar_tudo(request: Request):
+    """
+    Baixa BANCO + TODAS AS FOTOS num único .zip, pelo navegador.
+    É a forma mais simples de levar o conteúdo do servidor para a máquina local.
+    """
+    guard = _needs_login(request)
+    if guard:
+        return guard
+
+    import sqlite3
+    import tempfile
+    import zipfile
+    import datetime as _dt
+    from fastapi.responses import FileResponse
+    from src.core.config import DATA_DIR
+
+    carimbo = _dt.datetime.now().strftime("%Y%m%d_%H%M")
+    tmp = Path(tempfile.gettempdir())
+    zip_path = tmp / f"lucas_garage_{carimbo}.zip"
+
+    try:
+        # 1) snapshot íntegro do banco (mesmo com o app em uso)
+        banco_tmp = tmp / "lucas_garage.db"
+        origem = DATA_DIR / "lucas_garage.db"
+        if origem.exists():
+            con_o = sqlite3.connect(str(origem))
+            con_d = sqlite3.connect(str(banco_tmp))
+            with con_d:
+                con_o.backup(con_d)
+            con_o.close()
+            con_d.close()
+
+        # 2) monta o zip: banco + pasta de fotos
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+            if banco_tmp.exists():
+                z.write(banco_tmp, "data/lucas_garage.db")
+            pasta_fotos = Path(settings.UPLOAD_DIR)
+            if pasta_fotos.exists():
+                for arq in pasta_fotos.rglob("*"):
+                    if arq.is_file():
+                        z.write(arq, f"uploads/{arq.relative_to(pasta_fotos)}")
+    except Exception as e:
+        return JSONResponse({"error": f"Falha ao montar o pacote: {e}"}, status_code=500)
+
+    return FileResponse(
+        path=str(zip_path),
+        filename=f"lucas_garage_{carimbo}.zip",
+        media_type="application/zip",
+    )
+
+
 @app.get("/logout")
 async def logout():
     resp = RedirectResponse(url="/login", status_code=303)
