@@ -471,6 +471,21 @@ FICHAS = {
 }
 
 
+# Grafias antigas que ainda existem em algum banco -> ficha equivalente.
+# (o servidor e a cópia local divergiram em cinco nomes)
+APELIDOS = {
+    "New Beatle": "New Beetle",
+    "Emira": "Evora",
+    "Polícia (Nova York)": "Taurus Polícia (Nova York)",
+    "Carrera 2 (Clássico)": "911 Carrera 2 (Clássico)",
+    "Spring": "Sprinter",
+    "Skyline GT-R": "Skyline GT-R R34",
+}
+for _antigo, _novo in APELIDOS.items():
+    if _novo in FICHAS and _antigo not in FICHAS:
+        FICHAS[_antigo] = FICHAS[_novo]
+
+
 def main():
     gravar = "--gravar" in sys.argv
     forcar = "--forcar" in sys.argv
