@@ -100,3 +100,11 @@ yarn.lock
 local_data/
 temp/
 tmp/
+
+# Pacotes de backup e vídeos — NUNCA para o Git.
+# (o zip tem 61 MB e o mp4 45 MB; commitá-los estoura a cota do
+#  PythonAnywhere e incha o histórico para sempre)
+*.zip
+*.mp4
+*.mov
+*.avi
