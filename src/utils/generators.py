@@ -265,6 +265,30 @@ def perguntas_do_carro(car, mfr_nome, outros) -> list:
     return perguntas[:5]
 
 
+# Estimativa quando não há dado real (peso em kg, unidades fabricadas)
+_FICHA_BASE = {
+    "supercar": {"peso": 1450, "produzidos": 3000},
+    "racing":   {"peso": 1150, "produzidos": 800},
+    "sports":   {"peso": 1350, "produzidos": 90000},
+    "muscle":   {"peso": 1650, "produzidos": 300000},
+    "luxury":   {"peso": 1850, "produzidos": 120000},
+    "classic":  {"peso": 1050, "produzidos": 900000},
+}
+
+
+def ficha_auto(car) -> dict:
+    """Peso e unidades produzidas estimados pela classe (com variação estável)."""
+    class_val = car.class_.value if hasattr(car.class_, "value") else str(car.class_)
+    base = _FICHA_BASE.get(class_val, {"peso": 1300, "produzidos": 200000})
+    seed = int(hashlib.md5((car.name or str(car.id or "")).encode()).hexdigest(), 16)
+    var_p = (seed % 21) - 10                 # -10% a +10%
+    var_u = ((seed // 21) % 61) - 30         # -30% a +30%
+    return {
+        "peso": max(400, int(base["peso"] * (1 + var_p / 100))),
+        "produzidos": max(50, int(base["produzidos"] * (1 + var_u / 100))),
+    }
+
+
 def battle_stats(car) -> dict:
     """
     Atributos de batalha do Super Trunfo. Usa os valores MANUAIS do carro
@@ -272,11 +296,17 @@ def battle_stats(car) -> dict:
     Direção de vitória: velocidade/potência/raridade -> MAIOR vence; ano -> MAIS ANTIGO vence.
     """
     auto = battle_auto(car)
+    fauto = ficha_auto(car)
     mv = getattr(car, "velocidade", None)
     mp = getattr(car, "potencia", None)
+    peso = getattr(car, "peso", None)
+    prod = getattr(car, "produzidos", None)
     return {
         "velocidade": max(1, min(99, int(mv))) if mv else auto["velocidade"],
         "potencia": max(1, min(99, int(mp))) if mp else auto["potencia"],
         "ano": car.year or 2000,
         "raridade": _RARITY_POINTS.get(rarity_label(car), 60),
+        # dado REAL do Wikidata quando existe; estimado quando não
+        "peso": int(peso) if peso else fauto["peso"],
+        "produzidos": int(prod) if prod else fauto["produzidos"],
     }

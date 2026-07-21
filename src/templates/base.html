@@ -551,6 +551,46 @@
         .txt-ter { color:#8a8a8a; }
 
         /* ══════════════════════════════════════════════════
+           SELO SUPER TRUNFO — laranja → amarelo → lilás
+           ══════════════════════════════════════════════════ */
+        .selo-trunfo {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 5px 11px; border-radius: 999px;
+            font-family: 'Orbitron', sans-serif; font-weight: 700;
+            font-size: 10px; letter-spacing: .12em; white-space: nowrap;
+            color: #2b1000;
+            background: linear-gradient(100deg, #ff8a00, #ffd93d, #b06cff, #ff8a00);
+            background-size: 300% 100%;
+            border: 1px solid rgba(255,255,255,.6);
+            animation: trunfo-brilho 3s linear infinite,
+                       trunfo-pulso 1.8s ease-in-out infinite;
+        }
+        @keyframes trunfo-brilho {
+            0%   { background-position: 0% 0; }
+            100% { background-position: 300% 0; }
+        }
+        @keyframes trunfo-pulso {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 12px rgba(255,180,0,.5), 0 0 24px rgba(176,108,255,.3);
+            }
+            50% {
+                transform: scale(1.07);
+                box-shadow: 0 0 22px rgba(255,200,40,.9), 0 0 42px rgba(176,108,255,.6);
+            }
+        }
+        /* o card inteiro ganha aura quando é a carta trunfo */
+        .card-trunfo {
+            border-color: rgba(255,200,60,.55) !important;
+            box-shadow: 0 0 0 1px rgba(176,108,255,.35),
+                        0 14px 34px rgba(0,0,0,.5),
+                        0 0 30px rgba(255,180,0,.28) !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .selo-trunfo { animation: none; }
+        }
+
+        /* ══════════════════════════════════════════════════
            REVELAÇÃO EM CASCATA AO ROLAR
            ══════════════════════════════════════════════════ */
         .revelar {

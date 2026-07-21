@@ -173,7 +173,7 @@
             {% set rar = rarity_map.get(car.id, 'C') %}
             {% set imgs = (car.image_urls or []) | select | list %}
             {% set rt = rating_map.get(car.id, {'avg': 0, 'count': 0}) %}
-            <div class="vitrine-card flip group flex flex-col {% if rar == 'S' %}foil-s{% endif %}"
+            <div class="vitrine-card flip group flex flex-col {% if rar == 'S' %}foil-s{% endif %} {% if car.super_trunfo %}card-trunfo{% endif %}"
                  data-name="{{ car.name|e }}"
                  data-mfr="{{ (mfr.name if mfr else 'Outros')|e }}"
                  data-score="{{ score_map.get(car.id, 0) }}"
@@ -205,14 +205,19 @@
                     <span class="absolute top-3 left-3 z-10 bg-black/60 backdrop-blur-sm text-garage-ferrari font-display font-bold text-sm px-3 py-1 rounded">
                         #{{ loop.index }}
                     </span>
-                    <!-- Raridade -->
-                    <span class="absolute top-3 right-3 z-10 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm border
-                        {% if rar == 'S' %}text-yellow-300 border-yellow-400/50 bg-yellow-400/10
-                        {% elif rar == 'A' %}text-garage-ferrari border-garage-ferrari/50 bg-garage-ferrari/10
-                        {% elif rar == 'B' %}text-blue-300 border-blue-400/50 bg-blue-400/10
-                        {% else %}text-gray-300 border-white/20 bg-white/5{% endif %}">
-                        Classe {{ rar }}
-                    </span>
+                    <!-- Selo Super Trunfo + Raridade (canto superior direito) -->
+                    <div class="absolute top-3 right-3 z-20 flex flex-col items-end gap-1.5">
+                        {% if car.super_trunfo %}
+                        <span class="selo-trunfo">👑 SUPER TRUNFO</span>
+                        {% endif %}
+                        <span class="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm border
+                            {% if rar == 'S' %}text-yellow-300 border-yellow-400/50 bg-yellow-400/10
+                            {% elif rar == 'A' %}text-garage-ferrari border-garage-ferrari/50 bg-garage-ferrari/10
+                            {% elif rar == 'B' %}text-blue-300 border-blue-400/50 bg-blue-400/10
+                            {% else %}text-gray-300 border-white/20 bg-white/5{% endif %}">
+                            Classe {{ rar }}
+                        </span>
+                    </div>
                     <!-- Logo da montadora -->
                     {% if mfr and mfr.logo_url %}
                     <div class="absolute bottom-3 left-3 z-10 w-11 h-11 rounded-full bg-white/95 shadow-lg flex items-center justify-center p-1.5">
@@ -294,6 +299,21 @@
                             <span class="attr-nome">💎 Raridade</span>
                             <span class="attr-barra"><span class="attr-fill" style="width: {{ st.get('raridade', 0) }}%"></span></span>
                             <span class="attr-val">{{ st.get('raridade', '—') }}</span>
+                        </div>
+                        <div class="attr-linha">
+                            <span class="attr-nome">📦 Produzidos</span>
+                            <span class="attr-barra" style="background:transparent"></span>
+                            <span class="attr-val" style="width:auto">
+                                {%- set p = st.get('produzidos', 0) -%}
+                                {%- if p >= 1000000 %}{{ (p / 1000000) | round(1) }} mi
+                                {%- elif p >= 1000 %}{{ (p / 1000) | round(1) }} mil
+                                {%- else %}{{ p }}{% endif -%}
+                            </span>
+                        </div>
+                        <div class="attr-linha">
+                            <span class="attr-nome">⚖️ Peso</span>
+                            <span class="attr-barra" style="background:transparent"></span>
+                            <span class="attr-val" style="width:auto">{{ st.get('peso', '—') }} kg</span>
                         </div>
                         <div class="attr-linha">
                             <span class="attr-nome">📅 Ano</span>

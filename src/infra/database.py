@@ -1,4 +1,4 @@
-﻿from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Enum, ForeignKey, Boolean
+﻿from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Enum, ForeignKey, Boolean, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.sql import func
@@ -55,6 +55,9 @@ class CarModel(Base):
     # Baralho Super Trunfo: letra do naipe (A, B, C...) e a carta Super Trunfo
     letra = Column(String, nullable=True)
     super_trunfo = Column(Boolean, default=False)
+    # Ficha real (Wikidata / à mão). Se nula, o app estima.
+    produzidos = Column(Integer, nullable=True)    # unidades fabricadas — MENOR vence
+    peso = Column(Integer, nullable=True)          # kg — MENOR vence
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
     # relationships
@@ -77,6 +80,10 @@ def ensure_columns():
                     conn.execute(text("ALTER TABLE cars ADD COLUMN letra VARCHAR"))
                 if "super_trunfo" not in cols:
                     conn.execute(text("ALTER TABLE cars ADD COLUMN super_trunfo BOOLEAN DEFAULT 0"))
+                if "produzidos" not in cols:
+                    conn.execute(text("ALTER TABLE cars ADD COLUMN produzidos INTEGER"))
+                if "peso" not in cols:
+                    conn.execute(text("ALTER TABLE cars ADD COLUMN peso INTEGER"))
                 conn.commit()
     except Exception:
         pass

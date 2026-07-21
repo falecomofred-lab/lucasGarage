@@ -39,11 +39,14 @@
             <!-- ══════ INFO E AÇÕES ══════ -->
             <div class="flex flex-col justify-between gap-8">
                 <div>
-                    <div class="flex items-center space-x-4 mb-6">
+                    <div class="flex items-start justify-between gap-4 mb-6">
                         <div>
                             <h2 class="text-4xl font-display font-bold">{{ car_name }}</h2>
                             <p class="text-gray-500 uppercase tracking-[0.2em] text-sm">{{ mfr_name }} • {{ car.year }}</p>
                         </div>
+                        {% if car.super_trunfo %}
+                        <span class="selo-trunfo shrink-0 mt-1">👑 SUPER TRUNFO</span>
+                        {% endif %}
                     </div>
 
                     <!-- Stats de Batalha com efeito de Game -->

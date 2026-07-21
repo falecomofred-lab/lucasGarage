@@ -27,9 +27,22 @@ let ocupado = false;
 const ATTRS = [
     { key: 'velocidade', label: '⚡ Velocidade' },
     { key: 'potencia',   label: '🔧 Potência' },
+    { key: 'produzidos', label: '📦 Produzidos' },
+    { key: 'peso',       label: '⚖️ Peso' },
     { key: 'ano',        label: '📅 Ano' },
     { key: 'raridade',   label: '💎 Raridade' },
 ];
+
+function valorAttr(key, v) {
+    if (v === undefined || v === null) return '—';
+    if (key === 'produzidos') {
+        if (v >= 1000000) return (v / 1000000).toFixed(1).replace('.', ',') + ' mi';
+        if (v >= 1000) return (v / 1000).toFixed(1).replace('.', ',') + ' mil';
+        return String(v);
+    }
+    if (key === 'peso') return v + ' kg';
+    return String(v);
+}
 
 function esc(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 function fotoHTML(c){ return (c&&c.photo) ? '<img src="'+c.photo+'" class="absolute inset-0 w-full h-full object-cover">' : '<div class="absolute inset-0 flex items-center justify-center font-display text-4xl font-bold text-white/15">1:32</div>'; }
@@ -37,7 +50,7 @@ function fotoHTML(c){ return (c&&c.photo) ? '<img src="'+c.photo+'" class="absol
 function cartaHTML(c, interativo, destaque, vencedora) {
     if (!c) return '';
     const linhas = ATTRS.map(function (a) {
-        const val = c.stats[a.key];
+        const val = valorAttr(a.key, c.stats[a.key]);
         const hl = (destaque === a.key);
         if (interativo) {
             return '<button onclick="escolher(\'' + a.key + '\')" class="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 hover:bg-garage-ferrari active:scale-95 transition-all text-left">' +

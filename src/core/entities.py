@@ -49,6 +49,8 @@ class Car:
     potencia: Optional[int] = None
     letra: Optional[str] = None
     super_trunfo: bool = False
+    produzidos: Optional[int] = None     # unidades fabricadas
+    peso: Optional[int] = None           # kg
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

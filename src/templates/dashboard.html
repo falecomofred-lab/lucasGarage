@@ -116,7 +116,7 @@
         <div onclick="location.href='/edit/{{ car.id }}'"
              data-mfr="{{ (mfr.name if mfr else 'Outros')|e }}"
              data-name="{{ car.name|e }}"
-             class="car-card card-3d group relative flex flex-col overflow-hidden cursor-pointer {% if rar == 'S' %}foil-s{% endif %}">
+             class="car-card card-3d group relative flex flex-col overflow-hidden cursor-pointer {% if rar == 'S' %}foil-s{% endif %} {% if car.super_trunfo %}card-trunfo{% endif %}">
 
             <!-- ZONA DA IMAGEM (enquadramento uniforme 4:3) -->
             {% set imgs = (car.image_urls or []) | select | list %}
@@ -141,10 +141,15 @@
                         {{ car.class_.value if car.class_.value is defined else car.class_ }}
                     </span>
                     {% set status_val = car.status.value if car.status.value is defined else car.status %}
-                    <span class="text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider backdrop-blur-sm
-                        {% if status_val == 'published' %}bg-green-500/20 text-green-400 border border-green-500/30{% else %}bg-yellow-500/20 text-yellow-300 border border-yellow-500/30{% endif %}">
-                        {% if status_val == 'published' %}✓ Publicado{% else %}✎ Rascunho{% endif %}
-                    </span>
+                    <div class="flex flex-col items-end gap-1.5">
+                        {% if car.super_trunfo %}
+                        <span class="selo-trunfo">👑 SUPER TRUNFO</span>
+                        {% endif %}
+                        <span class="text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider backdrop-blur-sm
+                            {% if status_val == 'published' %}bg-green-500/20 text-green-400 border border-green-500/30{% else %}bg-yellow-500/20 text-yellow-300 border border-yellow-500/30{% endif %}">
+                            {% if status_val == 'published' %}✓ Publicado{% else %}✎ Rascunho{% endif %}
+                        </span>
+                    </div>
                 </div>
 
                 <!-- LOGO DA MONTADORA -->

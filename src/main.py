@@ -704,6 +704,17 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
         vel = _atr(form.get("velocidade"))
         pot = _atr(form.get("potencia"))
 
+        def _num(v, teto):
+            """Número livre (produzidos/peso). Vazio = o app estima."""
+            v = (v or "").strip()
+            try:
+                n = int(v)
+                return n if 0 < n <= teto else None
+            except ValueError:
+                return None
+        produzidos = _num(form.get("produzidos"), 99_000_000)
+        peso = _num(form.get("peso"), 9999)
+
         # Letra do baralho (A, B, C...) e carta Super Trunfo
         from src.utils.generators import LETRAS
         letra = (form.get("letra") or "").strip().upper()
@@ -733,6 +744,8 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
             car.potencia = pot
             car.letra = letra
             car.super_trunfo = eh_super
+            car.produzidos = produzidos
+            car.peso = peso
         else:
             # Criar novo — SEM id. O banco gera o número sozinho.
             # (passar id aqui fazia o repositório tentar EDITAR uma linha
@@ -754,6 +767,8 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
                 potencia=pot,
                 letra=letra,
                 super_trunfo=eh_super,
+                produzidos=produzidos,
+                peso=peso,
             )
 
         # save() devolve a entidade já com o id definitivo do banco
@@ -876,7 +891,12 @@ import uuid as _uuid
 import random as _random
 import string as _string
 
-_ATTR_DIR = {"velocidade": "high", "potencia": "high", "ano": "low", "raridade": "high"}
+_ATTR_DIR = {
+    "velocidade": "high", "potencia": "high", "raridade": "high",
+    "ano": "low",          # mais antigo vence
+    "peso": "low",         # mais leve vence
+    "produzidos": "low",   # mais raro vence
+}
 
 
 async def _montar_deck(db):

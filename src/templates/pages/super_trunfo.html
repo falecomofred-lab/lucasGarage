@@ -141,9 +141,23 @@ const DECK = {{ deck|tojson }};
 const ATTRS = [
     { key: 'velocidade', label: '⚡ Velocidade', dir: 'high' },
     { key: 'potencia',   label: '🔧 Potência',   dir: 'high' },
+    { key: 'produzidos', label: '📦 Produzidos', dir: 'low'  },
+    { key: 'peso',       label: '⚖️ Peso',        dir: 'low'  },
     { key: 'ano',        label: '📅 Ano',         dir: 'low'  },
     { key: 'raridade',   label: '💎 Raridade',    dir: 'high' },
 ];
+
+// Formata o valor de cada atributo para leitura rápida na carta
+function valorAttr(key, v) {
+    if (v === undefined || v === null) return '—';
+    if (key === 'produzidos') {
+        if (v >= 1000000) return (v / 1000000).toFixed(1).replace('.', ',') + ' mi';
+        if (v >= 1000) return (v / 1000).toFixed(1).replace('.', ',') + ' mil';
+        return String(v);
+    }
+    if (key === 'peso') return v + ' kg';
+    return String(v);
+}
 
 let p1 = [], p2 = [], pot = [], chooser = 1, rodada = 1;
 
@@ -195,14 +209,15 @@ function cartaHTML(c, interativo, destaque) {
     let linhas = ATTRS.map(function (a) {
         const val = c.stats[a.key];
         const hl = (destaque === a.key);
+        const txt = valorAttr(a.key, val);
         if (interativo) {
             return '<button onclick="escolher(\'' + a.key + '\')" class="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 hover:bg-garage-ferrari active:scale-95 transition-all text-left">' +
                    '<span class="text-sm font-bold">' + a.label + '</span>' +
-                   '<span class="font-display text-lg font-bold">' + val + '</span></button>';
+                   '<span class="font-display text-lg font-bold">' + txt + '</span></button>';
         }
         return '<div class="flex items-center justify-between px-4 py-2.5 rounded-xl ' + (hl ? 'bg-garage-ferrari/25 border border-garage-ferrari' : 'bg-white/5') + '">' +
                '<span class="text-sm font-bold">' + a.label + '</span>' +
-               '<span class="font-display text-lg font-bold ' + (hl ? 'text-garage-ferrari' : '') + '">' + val + '</span></div>';
+               '<span class="font-display text-lg font-bold ' + (hl ? 'text-garage-ferrari' : '') + '">' + txt + '</span></div>';
     }).join('');
 
     const logo = c.logo ? '<div class="absolute bottom-2 left-2 w-9 h-9 rounded-full bg-white/95 flex items-center justify-center p-1"><img src="' + c.logo + '" class="max-w-full max-h-full object-contain" onerror="this.parentElement.style.display=\'none\'"></div>' : '';
