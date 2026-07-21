@@ -31,6 +31,10 @@ MANIFEST
 *.sqlite
 *.sqlite3
 
+# Chave secreta do login — NUNCA versionar
+.secret_key
+data/.secret_key
+
 # Uploads: as FOTOS dos carros VÃO para o Git (precisam estar no servidor).
 # Se um dia quiser ignorar fotos temporárias, ignore por nome específico.
 src/static/logos/

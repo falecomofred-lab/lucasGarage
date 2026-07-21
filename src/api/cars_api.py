@@ -213,20 +213,32 @@ async def upload_car_images(
     upload_dir = settings.UPLOAD_DIR / str(car_id)
     upload_dir.mkdir(parents=True, exist_ok=True)
 
+    import uuid
+
+    # Só extensões de imagem são aceitas
+    EXT_OK = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+
     uploaded_urls = []
     for file in files:
         if not file.content_type or not file.content_type.startswith("image/"):
-            raise HTTPException(status_code=400, detail=f"Arquivo {file.filename} não é imagem")
+            raise HTTPException(status_code=400, detail="Envie apenas imagens.")
 
         content = await file.read()
         if len(content) > settings.MAX_UPLOAD_SIZE:
             raise HTTPException(status_code=413, detail="Arquivo muito grande")
 
-        file_path = upload_dir / file.filename
+        # NUNCA usar o nome que veio no upload (pode conter "../" e escapar
+        # da pasta). Geramos um nome próprio e seguro.
+        ext = Path(file.filename or "").suffix.lower()
+        if ext not in EXT_OK:
+            ext = ".jpg"
+        nome_seguro = f"car{car_id}_{uuid.uuid4().hex[:12]}{ext}"
+
+        file_path = upload_dir / nome_seguro
         with open(file_path, "wb") as f:
             f.write(content)
 
-        uploaded_urls.append(f"/uploads/{car_id}/{file.filename}")
+        uploaded_urls.append(f"/uploads/{car_id}/{nome_seguro}")
 
     if not car.image_urls:
         car.image_urls = []
