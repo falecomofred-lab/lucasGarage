@@ -39,15 +39,15 @@ class CarModel(Base):
     __tablename__ = "cars"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
-    manufacturer_id = Column(Integer, ForeignKey("manufacturers.id"))
-    category_id = Column(Integer, ForeignKey("categories.id"))
-    year = Column(Integer)
-    color = Column(String(50))
+    manufacturer_id = Column(Integer, ForeignKey("manufacturers.id", ondelete="CASCADE"), nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False)
+    year = Column(Integer, nullable=False)
+    color = Column(String(50), nullable=False)
     scale = Column(String(20), default="1:32")
     class_ = Column(Enum(CarClass), nullable=False)
     description = Column(Text)
     trivia = Column(Text)
-    image_urls = Column(Text)  # JSON string
+    image_urls = Column(Text, default="[]")  # JSON string com default
     status = Column(Enum(CarStatus), default=CarStatus.DRAFT)
     # Atributos de batalha manuais (Super Trunfo). Se nulos, são calculados automaticamente.
     velocidade = Column(Integer, nullable=True)
@@ -85,7 +85,7 @@ class RatingModel(Base):
     """Estrela (1 a 5) dada por um amigo do Lucas a um carro."""
     __tablename__ = "ratings"
     id = Column(Integer, primary_key=True, index=True)
-    car_id = Column(Integer, ForeignKey("cars.id"), index=True)
+    car_id = Column(Integer, ForeignKey("cars.id", ondelete="CASCADE"), index=True, nullable=False)
     stars = Column(Integer, nullable=False)  # 1..5
     created_at = Column(DateTime, server_default=func.now())
 
@@ -94,7 +94,7 @@ class CommentModel(Base):
     """Comentário de um amigo do Lucas em um carro da vitrine."""
     __tablename__ = "comments"
     id = Column(Integer, primary_key=True, index=True)
-    car_id = Column(Integer, ForeignKey("cars.id"), index=True)
+    car_id = Column(Integer, ForeignKey("cars.id", ondelete="CASCADE"), index=True, nullable=False)
     author = Column(String(60), default="Anônimo")
     text = Column(Text, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
@@ -104,7 +104,7 @@ class LikeModel(Base):
     """Curtida (❤️) de um amigo em um carro da vitrine."""
     __tablename__ = "likes"
     id = Column(Integer, primary_key=True, index=True)
-    car_id = Column(Integer, ForeignKey("cars.id"), index=True)
+    car_id = Column(Integer, ForeignKey("cars.id", ondelete="CASCADE"), index=True, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
 

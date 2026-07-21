@@ -464,6 +464,12 @@ async def rate_car(car_id: int, request: Request, db=Depends(get_db)):
     from src.infra.database import RatingModel
     from sqlalchemy import func as safunc
 
+    # Validar se carro existe
+    car_repo = SQLAlchemyCarRepository(db)
+    car = await car_repo.get_by_id(car_id)
+    if not car:
+        return JSONResponse(content={"error": "Carro não encontrado"}, status_code=404)
+
     form = await request.form()
     try:
         stars = int(form.get("stars", 0))
@@ -493,6 +499,13 @@ async def list_comments(car_id: int, db=Depends(get_db)):
 async def add_comment(car_id: int, request: Request, db=Depends(get_db)):
     """Amigo do Lucas deixa um comentário em um carro."""
     from src.infra.database import CommentModel
+
+    # Validar se carro existe
+    car_repo = SQLAlchemyCarRepository(db)
+    car = await car_repo.get_by_id(car_id)
+    if not car:
+        return JSONResponse(content={"error": "Carro não encontrado"}, status_code=404)
+
     form = await request.form()
     author = (form.get("author", "") or "").strip()[:60] or "Anônimo"
     text = (form.get("text", "") or "").strip()[:500]
@@ -509,6 +522,13 @@ async def like_car(car_id: int, db=Depends(get_db)):
     """Amigo do Lucas curte um carro (❤️)."""
     from src.infra.database import LikeModel
     from sqlalchemy import func as safunc
+
+    # Validar se carro existe
+    car_repo = SQLAlchemyCarRepository(db)
+    car = await car_repo.get_by_id(car_id)
+    if not car:
+        return JSONResponse(content={"error": "Carro não encontrado"}, status_code=404)
+
     db.add(LikeModel(car_id=car_id))
     db.commit()
     total = db.query(safunc.count(LikeModel.id)).filter(LikeModel.car_id == car_id).scalar()
@@ -748,7 +768,7 @@ async def create_new_car(request: Request, db=Depends(get_db)):
         # Só pode existir UMA carta Super Trunfo: desmarca as outras
         if eh_super:
             from src.infra.database import CarModel
-            db.query(CarModel).filter(CarModel.id != None).update({"super_trunfo": False})
+            db.query(CarModel).update({"super_trunfo": False})
             db.commit()
 
         # Criar novo carro (sem ID específico - banco gera automaticamente)
@@ -876,7 +896,7 @@ async def save_car(car_id: int, request: Request, db=Depends(get_db)):
         # Só pode existir UMA carta Super Trunfo: desmarca as outras
         if eh_super:
             from src.infra.database import CarModel
-            db.query(CarModel).filter(CarModel.id != car_id).update({"super_trunfo": False})
+            db.query(CarModel).filter(CarModel.id.isnot(car_id)).update({"super_trunfo": False})
             db.commit()
 
         if car:

@@ -203,6 +203,9 @@ async def upload_car_images(
     db=Depends(get_db),
 ):
     """Upload de imagens para um carro."""
+    import uuid
+    from pathlib import Path
+
     repo = SQLAlchemyCarRepository(db)
     car = await repo.get_by_id(car_id)
     if not car:
@@ -222,11 +225,17 @@ async def upload_car_images(
         if len(content) > settings.MAX_UPLOAD_SIZE:
             raise HTTPException(status_code=413, detail="Arquivo muito grande")
 
-        file_path = upload_dir / file.filename
+        # Segurança: usar UUID ao invés de filename (previne path traversal)
+        ext = Path(file.filename).suffix.lower() or ".jpg"
+        if ext not in (".jpg", ".jpeg", ".png", ".webp"):
+            raise HTTPException(status_code=400, detail=f"Tipo de imagem não suportado: {ext}")
+
+        secure_filename = f"car{car_id}_{uuid.uuid4().hex[:8]}{ext}"
+        file_path = upload_dir / secure_filename
         with open(file_path, "wb") as f:
             f.write(content)
 
-        uploaded_urls.append(f"/uploads/{car_id}/{file.filename}")
+        uploaded_urls.append(f"/uploads/{car_id}/{secure_filename}")
 
     if not car.image_urls:
         car.image_urls = []
