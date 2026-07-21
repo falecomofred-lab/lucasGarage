@@ -6,7 +6,7 @@
 <div class="w-full px-4 py-8 sm:px-6">
     <div class="max-w-md mx-auto">
         <header class="text-center mb-6">
-            <p class="text-garage-ferrari text-[11px] font-bold tracking-[0.35em] uppercase mb-2">Adivinhe o carro</p>
+            <p class="text-garage-ferrari text-[11px] font-bold tracking-[0.35em] uppercase mb-2">Pela foto ou pela história</p>
             <h1 class="font-display text-3xl font-bold">QUIZ <span class="text-garage-ferrari">DA GARAGEM</span></h1>
         </header>
 
@@ -22,12 +22,53 @@
 
 <script>
 const ITENS = {{ itens|tojson }};
+const CURIOSIDADES = {{ curiosidades|tojson }};
 let pontos = 0, seq = 0, recorde = parseInt(localStorage.getItem('quiz_recorde') || '0');
 let respondendo = false;
 document.getElementById('recorde').textContent = recorde;
 
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
 function esc(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+function montaOpcoes(certo, universo) {
+    const nomes = new Set([certo.name]);
+    for (const it of shuffle(universo)) { if (nomes.size >= 4) break; nomes.add(it.name); }
+    return shuffle([...nomes]);
+}
+
+function ligarBotoes(nomeCerto) {
+    document.querySelectorAll('.opt').forEach(function (b) {
+        b.addEventListener('click', function () { responder(b, b.dataset.nome === nomeCerto, nomeCerto); });
+    });
+}
+
+function htmlOpcoes(opcoes) {
+    return '<div id="opcoes" class="space-y-2">' + opcoes.map(function (nm) {
+        return '<button class="opt w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 font-bold transition-all" data-nome="' + esc(nm) + '">' + esc(nm) + '</button>';
+    }).join('') + '</div>';
+}
+
+/* ── Rodada 1: adivinhe pela FOTO ── */
+function rodadaFoto(area) {
+    const certo = ITENS[Math.floor(Math.random() * ITENS.length)];
+    area.innerHTML =
+        '<div class="rounded-3xl overflow-hidden border border-white/10 mb-4 aspect-[4/3] bg-garage-graphite">' +
+        '<img src="' + certo.photo + '" class="w-full h-full object-cover card-photo"></div>' +
+        '<p class="text-center text-gray-400 text-sm mb-3">Que carro é esse?</p>' +
+        htmlOpcoes(montaOpcoes(certo, ITENS));
+    ligarBotoes(certo.name);
+}
+
+/* ── Rodada 2: adivinhe pela CURIOSIDADE ── */
+function rodadaCuriosidade(area) {
+    const certo = CURIOSIDADES[Math.floor(Math.random() * CURIOSIDADES.length)];
+    area.innerHTML =
+        '<div class="rounded-3xl border border-garage-ferrari/30 bg-garage-ferrari/5 p-5 mb-4">' +
+        '<p class="text-garage-ferrari text-[10px] font-bold tracking-[0.3em] uppercase mb-2">💡 De qual carro é esta história?</p>' +
+        '<p class="text-sm leading-relaxed text-gray-200">' + esc(certo.texto) + '</p></div>' +
+        htmlOpcoes(montaOpcoes(certo, CURIOSIDADES.length >= 4 ? CURIOSIDADES : ITENS));
+    ligarBotoes(certo.name);
+}
 
 function proxima() {
     respondendo = false;
@@ -36,25 +77,9 @@ function proxima() {
         area.innerHTML = '<div class="glass-card rounded-3xl p-8 text-center"><p class="text-gray-400">Cadastre pelo menos 4 carros com foto para jogar o quiz.</p></div>';
         return;
     }
-    const certo = ITENS[Math.floor(Math.random() * ITENS.length)];
-    // 3 distratores com nomes diferentes
-    const nomes = new Set([certo.name]);
-    const outros = shuffle(ITENS);
-    for (const it of outros) { if (nomes.size >= 4) break; nomes.add(it.name); }
-    const opcoes = shuffle([...nomes]);
-
-    area.innerHTML =
-        '<div class="rounded-3xl overflow-hidden border border-white/10 mb-4 aspect-[4/3] bg-garage-graphite">' +
-        '<img src="' + certo.photo + '" class="w-full h-full object-cover card-photo"></div>' +
-        '<p class="text-center text-gray-400 text-sm mb-3">Que carro é esse?</p>' +
-        '<div id="opcoes" class="space-y-2">' +
-        opcoes.map(function (nm) {
-            return '<button class="opt w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 font-bold transition-all" data-nome="' + esc(nm) + '">' + esc(nm) + '</button>';
-        }).join('') + '</div>';
-
-    document.querySelectorAll('.opt').forEach(function (b) {
-        b.addEventListener('click', function () { responder(b, b.dataset.nome === certo.name, certo.name); });
-    });
+    // 40% das rodadas são de curiosidade, quando houver material
+    if (CURIOSIDADES.length >= 4 && Math.random() < 0.4) rodadaCuriosidade(area);
+    else rodadaFoto(area);
 }
 
 function responder(btn, acertou, nomeCerto) {

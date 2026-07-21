@@ -212,6 +212,16 @@ def _opcoes(correta, candidatos, n=4):
     return opts, opts.index(correta)
 
 
+def _fmt_unid(n) -> str:
+    """21529464 -> '21,5 milhões'  ·  1337 -> '1.337'"""
+    n = int(n)
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}".replace(".", ",") + " milhões"
+    if n >= 1000:
+        return f"{n:,}".replace(",", ".")
+    return str(n)
+
+
 def perguntas_do_carro(car, mfr_nome, outros) -> list:
     """
     Gera perguntas de múltipla escolha a partir dos dados que já temos.
@@ -253,7 +263,30 @@ def perguntas_do_carro(car, mfr_nome, outros) -> list:
         opts, idx = _opcoes(car.color, cores[:3] or ["Preto", "Prata", "Azul"])
         perguntas.append({"pergunta": f"Qual a cor desta miniatura do {nome}?", "opcoes": opts, "correta": idx})
 
-    # 5) Atributo de batalha (Super Trunfo)
+    # 5) Unidades produzidas — pergunta forte, os números são bem distintos
+    prod = getattr(car, "produzidos", None)
+    if prod:
+        outros_prod = [o.get("produzidos") for o in outros if o.get("produzidos") and o.get("produzidos") != prod]
+        random.shuffle(outros_prod)
+        extras = outros_prod[:3] or [prod * 12, max(60, prod // 15), prod * 120]
+        opts, idx = _opcoes(_fmt_unid(prod), [_fmt_unid(x) for x in extras])
+        perguntas.append({
+            "pergunta": f"Quantas unidades do {nome} foram fabricadas?",
+            "opcoes": opts, "correta": idx,
+        })
+
+    # 6) Peso
+    peso = getattr(car, "peso", None)
+    if peso:
+        outros_peso = [o.get("peso") for o in outros if o.get("peso") and abs(o.get("peso") - peso) > 60]
+        random.shuffle(outros_peso)
+        extras = [f"{p} kg" for p in outros_peso[:3]] or [
+            f"{peso + 380} kg", f"{max(400, peso - 320)} kg", f"{peso + 750} kg"
+        ]
+        opts, idx = _opcoes(f"{peso} kg", extras)
+        perguntas.append({"pergunta": f"Quanto pesa o {nome}?", "opcoes": opts, "correta": idx})
+
+    # 7) Atributo de batalha (Super Trunfo)
     st = battle_stats(car)
     vel = st["velocidade"]
     distratores = [str(max(1, vel - random.randint(6, 18))), str(min(99, vel + random.randint(6, 18))),

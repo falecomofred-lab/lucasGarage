@@ -1246,16 +1246,35 @@ async def jogo_online(code: str, request: Request, db=Depends(get_db)):
 
 @app.get("/quiz")
 async def quiz_page(request: Request, db=Depends(get_db)):
-    """Quiz: adivinhe o carro pela foto (público)."""
+    """Quiz: adivinhe pela foto OU pela curiosidade do carro (público)."""
+    from src.infra.repositories import SQLAlchemyManufacturerRepository
     repo = SQLAlchemyCarRepository(db)
+    mfr_repo = SQLAlchemyManufacturerRepository(db)
     cars = await repo.get_all()
-    itens = []
+    marcas = {m.id: m.name for m in await mfr_repo.get_all()}
+
+    itens = []       # rodada por FOTO
+    curiosidades = []  # rodada por CURIOSIDADE
     for c in cars:
+        if not c.name:
+            continue
         urls = [u for u in (c.image_urls or []) if u]
-        if urls and c.name:
+        if urls:
             itens.append({"name": c.name, "photo": urls[0]})
+        texto = (c.trivia or "").strip()
+        # evita textos que entregam o nome do carro na própria pergunta
+        if texto and len(texto) > 40 and c.name.lower() not in texto.lower():
+            curiosidades.append({
+                "name": c.name,
+                "texto": texto,
+                "mfr": marcas.get(c.manufacturer_id, ""),
+                "photo": urls[0] if urls else "",
+            })
+
     template = jinja_env.get_template("pages/quiz.html")
-    return HTMLResponse(template.render(request=request, itens=itens))
+    return HTMLResponse(template.render(
+        request=request, itens=itens, curiosidades=curiosidades,
+    ))
 
 
 @app.get("/health")
